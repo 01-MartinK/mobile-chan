@@ -9,4 +9,7 @@
     <string name="breadcrumb_search">/search/ - Search</string>
     <string name="breadcrumb_activity">/activity/ - Activity</string>
     <string name="breadcrumb_profile">/profile/ - Profile</string>
+    <string name="board_item">/%1$s/ - %2$s</string>
+    <string name="boards_error">Couldn\'t load boards</string>
+    <string name="boards_retry">Retry</string>
 </resources>

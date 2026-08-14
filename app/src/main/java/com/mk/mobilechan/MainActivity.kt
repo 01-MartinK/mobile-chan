@@ -1,11 +1,9 @@
 package com.mk.mobilechan
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -31,7 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
-import com.mk.mobilechan.data.FourChanClient
+import com.mk.mobilechan.ui.boards.BoardsScreen
 import com.mk.mobilechan.ui.navigation.AppDestinations
 import com.mk.mobilechan.ui.navigation.BottomNavBar
 import com.mk.mobilechan.ui.navigation.TopNavBar
@@ -42,30 +40,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        logBoards()
         setContent {
             MobileChanTheme {
                 MobileChanApp()
             }
         }
-    }
-
-    private fun logBoards() {
-        lifecycleScope.launch {
-            try {
-                val boards = FourChanClient.api.getBoards().boards
-                Log.d(TAG, "Loaded ${boards.size} boards")
-                boards.forEach { board ->
-                    Log.d(TAG, "/${board.board}/ - ${board.title}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to load boards", e)
-            }
-        }
-    }
-
-    companion object {
-        private const val TAG = "FourChan"
     }
 }
 
@@ -145,15 +124,18 @@ private fun DestinationPane(
     destination: AppDestinations,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = stringResource(destination.labelRes),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
+    when (destination) {
+        AppDestinations.BOARDS -> BoardsScreen(modifier = modifier)
+        else -> Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = stringResource(destination.labelRes),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
     }
 }
 
