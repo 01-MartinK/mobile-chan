@@ -14,13 +14,14 @@ import androidx.compose.ui.res.stringResource
 fun BottomNavBar(
     currentDestination: AppDestinations,
     onDestinationSelected: (AppDestinations) -> Unit,
+    insideBoard: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val navItemColors = bottomNavItemColors()
 
     NavigationSuiteScaffold(
         navigationItems = {
-            AppDestinations.entries.forEach { destination ->
+            AppDestinations.visibleEntries(insideBoard).forEach { destination ->
                 NavigationSuiteItem(
                     selected = destination == currentDestination,
                     onClick = { onDestinationSelected(destination) },

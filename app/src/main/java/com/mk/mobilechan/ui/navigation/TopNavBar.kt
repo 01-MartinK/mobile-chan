@@ -2,6 +2,7 @@ package com.mk.mobilechan.ui.navigation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +23,7 @@ fun TopNavBar(
     title: String,
     onMenuClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onBackClick: (() -> Unit)? = null,
 ) {
     Column {
         TopAppBar(
@@ -32,11 +34,20 @@ fun TopNavBar(
                 )
             },
             navigationIcon = {
-                IconButton(onClick = onMenuClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.Menu,
-                        contentDescription = stringResource(R.string.nav_menu),
-                    )
+                if (onBackClick != null) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = stringResource(R.string.nav_back),
+                        )
+                    }
+                } else {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.Menu,
+                            contentDescription = stringResource(R.string.nav_menu),
+                        )
+                    }
                 }
             },
             actions = {

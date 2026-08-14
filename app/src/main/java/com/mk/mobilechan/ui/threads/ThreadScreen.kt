@@ -1,0 +1,170 @@
+package com.mk.mobilechan.ui.threads
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.mk.mobilechan.R
+import com.mk.mobilechan.data.Board
+import com.mk.mobilechan.data.FourChanClient
+import com.mk.mobilechan.data.IndexThread
+import com.mk.mobilechan.data.Post
+import com.mk.mobilechan.ui.theme.MobileChanTheme
+
+sealed interface ThreadUiState {
+    data object Loading : ThreadUiState
+    data object Error : ThreadUiState
+    data class Success(val posts: List<IndexThread>) : ThreadUiState
+}
+
+@Composable
+fun ThreadScreen(
+    board: Board,
+    threadNo: Long,
+    modifier: Modifier = Modifier,
+) {
+    val (state, retry) = rememberThreadUiState(board.board, threadNo)
+
+    ThreadPosts(
+        state = state,
+        onRetry = retry,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun rememberThreadUiState(
+    board: String,
+    threadNo: Long,
+): Pair<ThreadUiState, () -> Unit> {
+    var state by remember { mutableStateOf<ThreadUiState>(ThreadUiState.Loading) }
+    var retryKey by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(board, threadNo, retryKey) {
+        state = ThreadUiState.Loading
+        state = try {
+            ThreadUiState.Success(FourChanClient.getThread(board, threadNo))
+        } catch (_: Exception) {
+            ThreadUiState.Error
+        }
+    }
+
+    return state to { retryKey++ }
+}
+
+@Composable
+private fun ThreadPosts(
+    state: ThreadUiState,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (state) {
+        ThreadUiState.Loading -> {
+            Box(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        ThreadUiState.Error -> {
+            Column(
+                modifier = modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = stringResource(R.string.thread_error),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                TextButton(onClick = onRetry) {
+                    Text(stringResource(R.string.thread_retry))
+                }
+            }
+        }
+
+        is ThreadUiState.Success -> {
+            if (state.posts.isEmpty()) {
+                Box(
+                    modifier = modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.thread_empty),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(state.posts, key = { it.op?.no ?: it.hashCode() }) { post ->
+                        ThreadCard(post)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ThreadPostsPreview() {
+    MobileChanTheme {
+        ThreadPosts(
+            state = ThreadUiState.Success(
+                listOf(
+                    IndexThread(
+                        posts = listOf(
+                            Post(
+                                no = 9823415,
+                                now = "05/14/24(Tue)14:28:05",
+                                name = "Anonymous",
+                                sub = "Homelab thread",
+                                com = "N100s are fine for basic stuff, but if you want real throughput you need 2.5GbE minimum.",
+                                replies = 2,
+                                images = 1,
+                            ),
+                        ),
+                    ),
+                    IndexThread(
+                        posts = listOf(
+                            Post(
+                                no = 9823416,
+                                resto = 9823415,
+                                now = "05/14/24(Tue)14:31:12",
+                                name = "Anonymous",
+                                com = """<a href="#p9823415" class="quotelink">&gt;&gt;9823415</a><br>Get a used Lenovo Tiny.""",
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            onRetry = {},
+        )
+    }
+}

@@ -1,15 +1,20 @@
 <resources>
     <string name="app_name">MobileChan</string>
     <string name="nav_boards">Boards</string>
+    <string name="nav_catalog">Catalog</string>
     <string name="nav_search">Search</string>
     <string name="nav_activity">Activity</string>
     <string name="nav_profile">Profile</string>
     <string name="nav_menu">Menu</string>
+    <string name="nav_back">Back</string>
     <string name="breadcrumb_boards">/home/ - Directory</string>
+    <string name="breadcrumb_catalog">/catalog/ - Catalog</string>
     <string name="breadcrumb_search">/search/ - Search</string>
     <string name="breadcrumb_activity">/activity/ - Activity</string>
     <string name="breadcrumb_profile">/profile/ - Profile</string>
     <string name="board_item">/%1$s/ - %2$s</string>
+    <string name="board_catalog">/%1$s/ - Catalog</string>
+    <string name="board_thread">/%1$s/thread/%2$d</string>
     <string name="boards_error">Couldn\'t load boards</string>
     <string name="boards_retry">Retry</string>
     <string name="four_chan">4Chan</string>
@@ -17,6 +22,12 @@
     <string name="threads_error">Couldn\'t load threads</string>
     <string name="threads_retry">Retry</string>
     <string name="threads_empty">No threads on this page</string>
+    <string name="catalog_error">Couldn\'t load catalog</string>
+    <string name="catalog_retry">Retry</string>
+    <string name="catalog_empty">No threads in this catalog</string>
+    <string name="thread_error">Couldn\'t load thread</string>
+    <string name="thread_retry">Retry</string>
+    <string name="thread_empty">No posts in this thread</string>
     <string name="thread_no">No.%1$d</string>
     <string name="thread_image">Thread image</string>
     <string name="thread_sticky">Sticky</string>

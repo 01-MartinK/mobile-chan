@@ -60,6 +60,15 @@ data class IndexPageResponse(
     )
 }
 
+data class CatalogPage(
+    val page: Int,
+    val threads: List<Post> = emptyList(),
+)
+
+data class ThreadResponse(
+    val posts: List<Post> = emptyList(),
+)
+
 object FourChanMedia {
     fun imageUrl(board: String, tim: Long, ext: String): String =
         "https://i.4cdn.org/$board/$tim$ext"
@@ -77,6 +86,17 @@ interface FourChanApi {
         @Path("board") board: String,
         @Path("page") page: Int,
     ): IndexPageResponse
+
+    @GET("{board}/catalog.json")
+    suspend fun getCatalog(
+        @Path("board") board: String,
+    ): List<CatalogPage>
+
+    @GET("{board}/thread/{no}.json")
+    suspend fun getThread(
+        @Path("board") board: String,
+        @Path("no") no: Long,
+    ): ThreadResponse
 }
 
 object FourChanClient {
@@ -106,4 +126,12 @@ object FourChanClient {
 
     suspend fun getIndex(board: String, page: Int): IndexPageResponse =
         api.getIndex(board, page).withImageUrls(board)
+
+    suspend fun getCatalog(board: String): List<IndexThread> =
+        api.getCatalog(board)
+            .flatMap { it.threads }
+            .map { IndexThread(posts = listOf(it)).withImageUrls(board) }
+
+    suspend fun getThread(board: String, no: Long): List<IndexThread> =
+        api.getThread(board, no).posts.map { IndexThread(posts = listOf(it)).withImageUrls(board) }
 }
