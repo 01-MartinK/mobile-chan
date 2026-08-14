@@ -1,5 +1,6 @@
 package com.mk.mobilechan.ui.boards
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,11 +60,13 @@ fun rememberBoardsUiState(): Pair<BoardsUiState, () -> Unit> {
 fun BoardsScreen(
     state: BoardsUiState,
     onRetry: () -> Unit,
+    onBoardSelected: (Board) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BoardsList(
         state = state,
         onRetry = onRetry,
+        onBoardSelected = onBoardSelected,
         modifier = modifier,
     )
 }
@@ -72,6 +75,7 @@ fun BoardsScreen(
 private fun BoardsList(
     state: BoardsUiState,
     onRetry: () -> Unit,
+    onBoardSelected: (Board) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -104,7 +108,7 @@ private fun BoardsList(
         is BoardsUiState.Success -> {
             LazyColumn(modifier = modifier.fillMaxSize()) {
                 items(state.boards, key = { it.board }) { board ->
-                    BoardListItem(board)
+                    BoardListItem(board, onClick = { onBoardSelected(board) })
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
@@ -113,7 +117,7 @@ private fun BoardsList(
 }
 
 @Composable
-private fun BoardListItem(board: Board) {
+private fun BoardListItem(board: Board, onClick: () -> Unit) {
     ListItem(
         headlineContent = {
             Text(
@@ -121,6 +125,7 @@ private fun BoardListItem(board: Board) {
                 style = MaterialTheme.typography.bodyLarge,
             )
         },
+        modifier = Modifier.clickable(onClick = onClick),
     )
 }
 
@@ -137,6 +142,7 @@ private fun BoardsListPreview() {
                 ),
             ),
             onRetry = {},
+            onBoardSelected = {},
         )
     }
 }

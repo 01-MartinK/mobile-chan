@@ -25,8 +25,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,7 +37,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
+import coil.Coil
+import coil.ImageLoader
 import com.mk.mobilechan.data.Board
+import com.mk.mobilechan.data.FourChanClient
 import com.mk.mobilechan.ui.boards.BoardsScreen
 import com.mk.mobilechan.ui.boards.BoardsUiState
 import com.mk.mobilechan.ui.boards.rememberBoardsUiState
@@ -44,11 +49,17 @@ import com.mk.mobilechan.ui.navigation.AppModules
 import com.mk.mobilechan.ui.navigation.BottomNavBar
 import com.mk.mobilechan.ui.navigation.TopNavBar
 import com.mk.mobilechan.ui.theme.MobileChanTheme
+import com.mk.mobilechan.ui.threads.ThreadsScreen
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Coil.setImageLoader(
+            ImageLoader.Builder(this)
+                .okHttpClient(FourChanClient.httpClient)
+                .build(),
+        )
         enableEdgeToEdge()
         setContent {
             MobileChanTheme {
@@ -62,9 +73,17 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MobileChanApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.BOARDS) }
+    var activeBoard by rememberSaveable(stateSaver = ActiveBoardSaver) { mutableStateOf<Board?>(null) }
+    var threadPage by rememberSaveable { mutableIntStateOf(1) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val (boardsState, retryBoards) = rememberBoardsUiState()
+
+    val selectBoard: (Board) -> Unit = { board ->
+        activeBoard = board
+        threadPage = 1
+        currentDestination = AppDestinations.BOARDS
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -76,9 +95,10 @@ fun MobileChanApp() {
                     scope.launch { drawerState.close() }
                 },
                 boardsState = boardsState,
+                activeBoard = activeBoard,
                 onRetryBoards = retryBoards,
-                onBoardSelected = {
-                    currentDestination = AppDestinations.BOARDS
+                onBoardSelected = { board ->
+                    selectBoard(board)
                     scope.launch { drawerState.close() }
                 },
             )
@@ -86,13 +106,18 @@ fun MobileChanApp() {
     ) {
         BottomNavBar(
             currentDestination = currentDestination,
-            onDestinationSelected = { currentDestination = it },
+            onDestinationSelected = { destination ->
+                if (destination == AppDestinations.BOARDS) {
+                    activeBoard = null
+                }
+                currentDestination = destination
+            },
         ) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 topBar = {
                     TopNavBar(
-                        destination = currentDestination,
+                        title = topBarTitle(currentDestination, activeBoard),
                         onMenuClick = { scope.launch { drawerState.open() } },
                         onSearchClick = { currentDestination = AppDestinations.SEARCH },
                     )
@@ -101,7 +126,11 @@ fun MobileChanApp() {
                 DestinationPane(
                     destination = currentDestination,
                     boardsState = boardsState,
+                    activeBoard = activeBoard,
+                    threadPage = threadPage,
                     onRetryBoards = retryBoards,
+                    onBoardSelected = selectBoard,
+                    onThreadPageChange = { threadPage = it },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -110,10 +139,20 @@ fun MobileChanApp() {
 }
 
 @Composable
+private fun topBarTitle(destination: AppDestinations, activeBoard: Board?): String {
+    return if (destination == AppDestinations.BOARDS && activeBoard != null) {
+        stringResource(R.string.board_item, activeBoard.board, activeBoard.title)
+    } else {
+        stringResource(destination.breadcrumbRes)
+    }
+}
+
+@Composable
 private fun AppDrawer(
     currentDestination: AppDestinations,
     onDestinationSelected: (AppDestinations) -> Unit,
     boardsState: BoardsUiState,
+    activeBoard: Board?,
     onRetryBoards: () -> Unit,
     onBoardSelected: (Board) -> Unit,
 ) {
@@ -181,7 +220,7 @@ private fun AppDrawer(
                                     ),
                                 )
                             },
-                            selected = false,
+                            selected = board.board == activeBoard?.board,
                             onClick = { onBoardSelected(board) },
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         )
@@ -196,15 +235,29 @@ private fun AppDrawer(
 private fun DestinationPane(
     destination: AppDestinations,
     boardsState: BoardsUiState,
+    activeBoard: Board?,
+    threadPage: Int,
     onRetryBoards: () -> Unit,
+    onBoardSelected: (Board) -> Unit,
+    onThreadPageChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (destination) {
-        AppDestinations.BOARDS -> BoardsScreen(
-            state = boardsState,
-            onRetry = onRetryBoards,
-            modifier = modifier,
-        )
+        AppDestinations.BOARDS -> if (activeBoard != null) {
+            ThreadsScreen(
+                board = activeBoard,
+                page = threadPage,
+                onPageChange = onThreadPageChange,
+                modifier = modifier,
+            )
+        } else {
+            BoardsScreen(
+                state = boardsState,
+                onRetry = onRetryBoards,
+                onBoardSelected = onBoardSelected,
+                modifier = modifier,
+            )
+        }
         else -> Box(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
@@ -225,3 +278,14 @@ private fun MobileChanAppPreview() {
         MobileChanApp()
     }
 }
+
+private val ActiveBoardSaver = listSaver<Board?, String>(
+    save = { board ->
+        if (board == null) emptyList()
+        else listOf(board.board, board.title, board.pages.toString())
+    },
+    restore = { saved ->
+        if (saved.size < 2) null
+        else Board(saved[0], saved[1], saved.getOrNull(2)?.toIntOrNull() ?: 10)
+    },
+)

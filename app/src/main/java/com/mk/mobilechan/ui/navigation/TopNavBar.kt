@@ -19,7 +19,7 @@ import com.mk.mobilechan.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopNavBar(
-    destination: AppDestinations,
+    title: String,
     onMenuClick: () -> Unit,
     onSearchClick: () -> Unit,
 ) {
@@ -27,7 +27,7 @@ fun TopNavBar(
         TopAppBar(
             title = {
                 Text(
-                    text = stringResource(destination.breadcrumbRes),
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                 )
             },

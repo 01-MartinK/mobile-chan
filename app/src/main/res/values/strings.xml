@@ -14,4 +14,16 @@
     <string name="boards_retry">Retry</string>
     <string name="four_chan">4Chan</string>
     <string name="end_chan">EndChan</string>
+    <string name="threads_error">Couldn\'t load threads</string>
+    <string name="threads_retry">Retry</string>
+    <string name="threads_empty">No threads on this page</string>
+    <string name="thread_no">No.%1$d</string>
+    <string name="thread_image">Thread image</string>
+    <string name="thread_sticky">Sticky</string>
+    <string name="thread_closed">Closed</string>
+    <string name="thread_stats">%1$d replies / %2$d images</string>
+    <string name="thread_omitted">%1$d posts omitted</string>
+    <string name="thread_page">Page %1$d</string>
+    <string name="thread_page_prev">Previous</string>
+    <string name="thread_page_next">Next</string>
 </resources>
