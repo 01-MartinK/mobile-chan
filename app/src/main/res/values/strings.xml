@@ -12,4 +12,6 @@
     <string name="board_item">/%1$s/ - %2$s</string>
     <string name="boards_error">Couldn\'t load boards</string>
     <string name="boards_retry">Retry</string>
+    <string name="four_chan">4Chan</string>
+    <string name="end_chan">EndChan</string>
 </resources>
