@@ -319,15 +319,6 @@ private fun DestinationPane(
         return
     }
 
-    if (activeBoard != null && activeThreadNo != null) {
-        ThreadScreen(
-            board = activeBoard,
-            threadNo = activeThreadNo,
-            modifier = modifier,
-        )
-        return
-    }
-
     when (destination) {
         AppDestinations.HOME -> {
             BoardsScreen(
@@ -338,16 +329,30 @@ private fun DestinationPane(
             )
         }
         AppDestinations.THREADS -> if (activeBoard != null) {
-            ThreadsScreen(
+            Box(modifier = modifier) {
+                ThreadsScreen(
+                    board = activeBoard,
+                    page = threadPage,
+                    onPageChange = onThreadPageChange,
+                    onThreadSelected = onThreadSelected,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (activeThreadNo != null) {
+                    ThreadScreen(
+                        board = activeBoard,
+                        threadNo = activeThreadNo,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+        AppDestinations.CATALOG -> when {
+            activeBoard != null && activeThreadNo != null -> ThreadScreen(
                 board = activeBoard,
-                page = threadPage,
-                onPageChange = onThreadPageChange,
-                onThreadSelected = onThreadSelected,
+                threadNo = activeThreadNo,
                 modifier = modifier,
             )
-        }
-        AppDestinations.CATALOG -> if (activeBoard != null) {
-            CatalogScreen(
+            activeBoard != null -> CatalogScreen(
                 board = activeBoard,
                 onThreadSelected = onThreadSelected,
                 modifier = modifier,

@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,11 +49,16 @@ fun ThreadScreen(
 ) {
     val (state, retry) = rememberThreadUiState(board.board, threadNo)
 
-    ThreadPosts(
-        state = state,
-        onRetry = retry,
-        modifier = modifier,
-    )
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+    ) {
+        ThreadPosts(
+            state = state,
+            onRetry = retry,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
 }
 
 @Composable
