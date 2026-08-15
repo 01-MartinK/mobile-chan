@@ -2,6 +2,9 @@ package com.mk.mobilechan.ui.threads
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +19,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -24,19 +29,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import androidx.core.text.HtmlCompat
 import com.mk.mobilechan.R
+import com.mk.mobilechan.data.FourChanMedia
 import com.mk.mobilechan.data.IndexThread
 import com.mk.mobilechan.data.Post
 import com.mk.mobilechan.ui.theme.MobileChanTheme
@@ -107,8 +124,9 @@ fun ThreadCard(
 
     if (showFullRes) {
         thread.imageUrl?.let { url ->
-            FullImageOverlay(
+            FullMediaOverlay(
                 url = url,
+                ext = op.ext,
                 filename = op.filename,
                 onDismiss = { showFullRes = false },
             )
@@ -168,8 +186,9 @@ private fun ThreadImage(
 }
 
 @Composable
-private fun FullImageOverlay(
+private fun FullMediaOverlay(
     url: String,
+    ext: String?,
     filename: String?,
     onDismiss: () -> Unit,
 ) {
@@ -180,20 +199,110 @@ private fun FullImageOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.92f))
-                .clickable(onClick = onDismiss),
+                .background(Color.Black.copy(alpha = 0.92f)),
             contentAlignment = Alignment.Center,
         ) {
-            AsyncImage(
-                model = url,
-                contentDescription = filename ?: stringResource(R.string.thread_image),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp),
-                contentScale = ContentScale.Fit,
-            )
+            if (FourChanMedia.isVideo(ext)) {
+                FullVideoPlayer(
+                    url = url,
+                    filename = filename,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp),
+                )
+            } else {
+                ZoomableFullImage(
+                    url = url,
+                    filename = filename,
+                    onDismiss = onDismiss,
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun ZoomableFullImage(
+    url: String,
+    filename: String?,
+    onDismiss: () -> Unit,
+) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val transformState = rememberTransformableState { zoomChange, panChange, _ ->
+        val nextScale = (scale * zoomChange).coerceIn(MIN_IMAGE_SCALE, MAX_IMAGE_SCALE)
+        scale = nextScale
+        offset = if (nextScale > 1f) offset + panChange else Offset.Zero
+    }
+
+    AsyncImage(
+        model = url,
+        contentDescription = filename ?: stringResource(R.string.thread_image),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationX = offset.x
+                translationY = offset.y
+            }
+            .transformable(
+                state = transformState,
+                lockRotationOnZoomPan = true,
+                canPan = { scale > 1f },
+            )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        if (scale > 1f) {
+                            scale = 1f
+                            offset = Offset.Zero
+                        } else {
+                            onDismiss()
+                        }
+                    },
+                )
+            },
+        contentScale = ContentScale.Fit,
+    )
+}
+
+@Composable
+private fun FullVideoPlayer(
+    url: String,
+    filename: String?,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val player = remember(url) {
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(
+                    DefaultHttpDataSource.Factory().setUserAgent("MobileChan/1.0"),
+                ),
+            )
+            .build()
+            .apply {
+                setMediaItem(MediaItem.fromUri(url))
+                repeatMode = Player.REPEAT_MODE_ONE
+                playWhenReady = true
+                prepare()
+            }
+    }
+    DisposableEffect(player) {
+        onDispose { player.release() }
+    }
+    AndroidView(
+        factory = { viewContext ->
+            PlayerView(viewContext).apply {
+                this.player = player
+                useController = true
+                contentDescription = filename ?: viewContext.getString(R.string.thread_video)
+            }
+        },
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -337,6 +446,8 @@ private fun quotePostNo(rawTag: String, text: String): Long? =
     HREF_POST_NO.find(rawTag)?.groupValues?.get(1)?.toLongOrNull()
         ?: QUOTE_LINK_NO.find(text)?.groupValues?.get(1)?.toLongOrNull()
 
+private const val MIN_IMAGE_SCALE = 1f
+private const val MAX_IMAGE_SCALE = 5f
 private const val NEWLINE_PLACEHOLDER = "\u0000"
 private val BR_TAG = Regex("<br\\s*/?>", RegexOption.IGNORE_CASE)
 private val WBR_TAG = Regex("<wbr\\s*/?>", RegexOption.IGNORE_CASE)

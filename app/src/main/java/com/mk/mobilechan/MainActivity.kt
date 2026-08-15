@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import coil.Coil
 import coil.ImageLoader
+import coil.decode.ImageDecoderDecoder
 import com.mk.mobilechan.data.Board
 import com.mk.mobilechan.data.FourChanClient
 import com.mk.mobilechan.ui.boards.BoardsScreen
@@ -64,6 +65,7 @@ class MainActivity : ComponentActivity() {
         Coil.setImageLoader(
             ImageLoader.Builder(this)
                 .okHttpClient(FourChanClient.httpClient)
+                .components { add(ImageDecoderDecoder.Factory()) }
                 .build(),
         )
         enableEdgeToEdge()

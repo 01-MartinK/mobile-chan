@@ -30,6 +30,7 @@
     <string name="thread_empty">No posts in this thread</string>
     <string name="thread_no">No.%1$d</string>
     <string name="thread_image">Thread image</string>
+    <string name="thread_video">Thread video</string>
     <string name="thread_sticky">Sticky</string>
     <string name="thread_closed">Closed</string>
     <string name="thread_stats">%1$d replies / %2$d images</string>

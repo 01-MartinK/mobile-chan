@@ -75,6 +75,11 @@ object FourChanMedia {
 
     fun thumbnailUrl(board: String, tim: Long): String =
         "https://i.4cdn.org/$board/${tim}s.jpg"
+
+    fun isVideo(ext: String?): Boolean {
+        val value = ext?.lowercase() ?: return false
+        return value == ".webm" || value == ".mp4"
+    }
 }
 
 interface FourChanApi {
