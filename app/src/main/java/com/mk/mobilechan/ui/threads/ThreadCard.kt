@@ -45,17 +45,17 @@ import com.mk.mobilechan.ui.theme.MobileChanTheme
 fun ThreadCard(
     thread: IndexThread,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     val op = thread.op ?: return
     var showFullRes by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
+    val colors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.surface,
+    )
+    val elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    val cardModifier = modifier.fillMaxWidth()
+    val content: @Composable () -> Unit = {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -80,6 +80,23 @@ fun ThreadCard(
             }
             ThreadMeta(op)
         }
+    }
+
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = cardModifier,
+            colors = colors,
+            elevation = elevation,
+            content = { content() },
+        )
+    } else {
+        Card(
+            modifier = cardModifier,
+            colors = colors,
+            elevation = elevation,
+            content = { content() },
+        )
     }
 
     if (showFullRes) {

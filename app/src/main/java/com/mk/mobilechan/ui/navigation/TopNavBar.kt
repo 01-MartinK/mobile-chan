@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -53,8 +54,8 @@ fun TopNavBar(
             actions = {
                 IconButton(onClick = onSearchClick) {
                     Icon(
-                        imageVector = Icons.Outlined.Search,
-                        contentDescription = stringResource(R.string.nav_search),
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = stringResource(R.string.settings_button),
                     )
                 }
             },

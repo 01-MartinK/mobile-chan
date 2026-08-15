@@ -37,4 +37,7 @@
     <string name="thread_page">Page %1$d</string>
     <string name="thread_page_prev">Previous</string>
     <string name="thread_page_next">Next</string>
+    <string name="nav_thread">Thread</string>
+    <string name="settings_button">Settings</string>
+    <string name="nav_home">Home</string>
 </resources>

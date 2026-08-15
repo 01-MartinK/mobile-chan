@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -75,7 +74,7 @@ class MainActivity : ComponentActivity() {
 @PreviewScreenSizes
 @Composable
 fun MobileChanApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.BOARDS) }
+    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
     var activeBoard by rememberSaveable(stateSaver = ActiveBoardSaver) { mutableStateOf<Board?>(null) }
     var threadPage by rememberSaveable { mutableIntStateOf(1) }
     var activeThreadNo by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -87,7 +86,7 @@ fun MobileChanApp() {
         activeBoard = board
         threadPage = 1
         activeThreadNo = null
-        currentDestination = AppDestinations.BOARDS
+        currentDestination = AppDestinations.THREADS
     }
 
     BackHandler(enabled = activeThreadNo != null) {
@@ -117,11 +116,6 @@ fun MobileChanApp() {
             currentDestination = currentDestination,
             insideBoard = activeBoard != null,
             onDestinationSelected = { destination ->
-                if (destination == AppDestinations.BOARDS &&
-                    currentDestination != AppDestinations.CATALOG
-                ) {
-                    activeBoard = null
-                }
                 activeThreadNo = null
                 currentDestination = destination
             },
@@ -132,10 +126,7 @@ fun MobileChanApp() {
                     TopNavBar(
                         title = topBarTitle(currentDestination, activeBoard, activeThreadNo),
                         onMenuClick = { scope.launch { drawerState.open() } },
-                        onSearchClick = {
-                            activeThreadNo = null
-                            currentDestination = AppDestinations.SEARCH
-                        },
+                        onSearchClick = { },
                         onBackClick = activeThreadNo?.let { { activeThreadNo = null } },
                     )
                 },
@@ -164,11 +155,11 @@ private fun topBarTitle(
     activeThreadNo: Long?,
 ): String {
     return when {
-        destination == AppDestinations.CATALOG && activeBoard != null && activeThreadNo != null ->
+        activeBoard != null && activeThreadNo != null ->
             stringResource(R.string.board_thread, activeBoard.board, activeThreadNo)
         destination == AppDestinations.CATALOG && activeBoard != null ->
             stringResource(R.string.board_catalog, activeBoard.board)
-        destination == AppDestinations.BOARDS && activeBoard != null ->
+        destination == AppDestinations.THREADS && activeBoard != null ->
             stringResource(R.string.board_item, activeBoard.board, activeBoard.title)
         else -> stringResource(destination.breadcrumbRes)
     }
@@ -271,15 +262,17 @@ private fun DestinationPane(
     onThreadSelected: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    if (activeBoard != null && activeThreadNo != null) {
+        ThreadScreen(
+            board = activeBoard,
+            threadNo = activeThreadNo,
+            modifier = modifier,
+        )
+        return
+    }
+
     when (destination) {
-        AppDestinations.BOARDS -> if (activeBoard != null) {
-            ThreadsScreen(
-                board = activeBoard,
-                page = threadPage,
-                onPageChange = onThreadPageChange,
-                modifier = modifier,
-            )
-        } else {
+        AppDestinations.HOME -> {
             BoardsScreen(
                 state = boardsState,
                 onRetry = onRetryBoards,
@@ -287,21 +280,19 @@ private fun DestinationPane(
                 modifier = modifier,
             )
         }
-        AppDestinations.CATALOG -> when {
-            activeBoard != null && activeThreadNo != null -> ThreadScreen(
+        AppDestinations.THREADS -> if (activeBoard != null) {
+            ThreadsScreen(
                 board = activeBoard,
-                threadNo = activeThreadNo,
-                modifier = modifier,
-            )
-            activeBoard != null -> CatalogScreen(
-                board = activeBoard,
+                page = threadPage,
+                onPageChange = onThreadPageChange,
                 onThreadSelected = onThreadSelected,
                 modifier = modifier,
             )
-            else -> BoardsScreen(
-                state = boardsState,
-                onRetry = onRetryBoards,
-                onBoardSelected = onBoardSelected,
+        }
+        AppDestinations.CATALOG -> if (activeBoard != null) {
+            CatalogScreen(
+                board = activeBoard,
+                onThreadSelected = onThreadSelected,
                 modifier = modifier,
             )
         }

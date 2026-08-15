@@ -44,6 +44,7 @@ fun ThreadsScreen(
     board: Board,
     page: Int,
     onPageChange: (Int) -> Unit,
+    onThreadSelected: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val (state, retry) = rememberThreadsUiState(board.board, page)
@@ -54,6 +55,7 @@ fun ThreadsScreen(
         pageCount = board.pages,
         onRetry = retry,
         onPageChange = onPageChange,
+        onThreadSelected = onThreadSelected,
         modifier = modifier,
     )
 }
@@ -85,6 +87,7 @@ private fun ThreadsList(
     pageCount: Int,
     onRetry: () -> Unit,
     onPageChange: (Int) -> Unit,
+    onThreadSelected: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -130,7 +133,10 @@ private fun ThreadsList(
                     }
                 } else {
                     items(state.threads, key = { it.op?.no ?: it.hashCode() }) { thread ->
-                        ThreadCard(thread)
+                        ThreadCard(
+                            thread = thread,
+                            onClick = { thread.op?.no?.let(onThreadSelected) },
+                        )
                     }
                 }
                 item {
@@ -201,6 +207,7 @@ private fun ThreadsListPreview() {
             pageCount = 10,
             onRetry = {},
             onPageChange = {},
+            onThreadSelected = {},
         )
     }
 }
