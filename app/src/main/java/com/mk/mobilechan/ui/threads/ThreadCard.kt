@@ -46,12 +46,18 @@ fun ThreadCard(
     thread: IndexThread,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    onQuoteClick: ((Long) -> Unit)? = null,
+    highlighted: Boolean = false,
 ) {
     val op = thread.op ?: return
     var showFullRes by remember { mutableStateOf(false) }
 
     val colors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = if (highlighted) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
     )
     val elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     val cardModifier = modifier.fillMaxWidth()
@@ -76,7 +82,7 @@ fun ThreadCard(
                 )
             }
             op.com?.takeIf { it.isNotBlank() }?.let { comment ->
-                ChanComment(html = comment)
+                ChanComment(html = comment, onQuoteClick = onQuoteClick)
             }
             ThreadMeta(op)
         }
@@ -227,7 +233,10 @@ private fun ThreadMeta(op: Post) {
 }
 
 @Composable
-private fun ChanComment(html: String) {
+private fun ChanComment(
+    html: String,
+    onQuoteClick: ((Long) -> Unit)? = null,
+) {
     val blocks = remember(html) { parseChanComment(html) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         blocks.forEach { block ->
@@ -242,6 +251,11 @@ private fun ChanComment(html: String) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline,
+                    modifier = if (onQuoteClick != null && block.postNo != null) {
+                        Modifier.clickable { onQuoteClick(block.postNo) }
+                    } else {
+                        Modifier
+                    },
                 )
                 is CommentBlock.Quote -> QuoteBlock(block.value)
             }
@@ -270,7 +284,7 @@ private fun QuoteBlock(text: String) {
 
 private sealed interface CommentBlock {
     data class Text(val value: String) : CommentBlock
-    data class QuoteLink(val value: String) : CommentBlock
+    data class QuoteLink(val value: String, val postNo: Long?) : CommentBlock
     data class Quote(val value: String) : CommentBlock
 }
 
@@ -300,7 +314,10 @@ private fun parseChanComment(html: String): List<CommentBlock> {
             }
             link != null -> {
                 val text = unescapeHtml(STRIP_TAGS.replace(link, "")).trim()
-                if (text.isNotEmpty()) blocks += CommentBlock.QuoteLink(text)
+                if (text.isNotEmpty()) {
+                    val postNo = quotePostNo(match.value, text)
+                    blocks += CommentBlock.QuoteLink(text, postNo)
+                }
             }
         }
         last = match.range.last + 1
@@ -316,10 +333,16 @@ private fun unescapeHtml(value: String): String {
         .replace(NEWLINE_PLACEHOLDER, "\n")
 }
 
+private fun quotePostNo(rawTag: String, text: String): Long? =
+    HREF_POST_NO.find(rawTag)?.groupValues?.get(1)?.toLongOrNull()
+        ?: QUOTE_LINK_NO.find(text)?.groupValues?.get(1)?.toLongOrNull()
+
 private const val NEWLINE_PLACEHOLDER = "\u0000"
 private val BR_TAG = Regex("<br\\s*/?>", RegexOption.IGNORE_CASE)
 private val WBR_TAG = Regex("<wbr\\s*/?>", RegexOption.IGNORE_CASE)
 private val STRIP_TAGS = Regex("<[^>]+>")
+private val HREF_POST_NO = Regex("""#p(\d+)""", RegexOption.IGNORE_CASE)
+private val QUOTE_LINK_NO = Regex(""">>(\d+)""")
 private val COMMENT_TOKEN = Regex(
     """<span class="quote">([\s\S]*?)</span>|<a[^>]*class="quotelink"[^>]*>([\s\S]*?)</a>|<[^>]+>""",
     RegexOption.IGNORE_CASE,

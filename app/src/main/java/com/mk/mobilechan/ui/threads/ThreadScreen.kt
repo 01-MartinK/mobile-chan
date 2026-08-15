@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +31,8 @@ import com.mk.mobilechan.data.FourChanClient
 import com.mk.mobilechan.data.IndexThread
 import com.mk.mobilechan.data.Post
 import com.mk.mobilechan.ui.theme.MobileChanTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 sealed interface ThreadUiState {
     data object Loading : ThreadUiState
@@ -117,16 +121,50 @@ private fun ThreadPosts(
                     )
                 }
             } else {
-                LazyColumn(
-                    modifier = modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(state.posts, key = { it.op?.no ?: it.hashCode() }) { post ->
-                        ThreadCard(post)
-                    }
-                }
+                ThreadPostList(
+                    posts = state.posts,
+                    modifier = modifier,
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun ThreadPostList(
+    posts: List<IndexThread>,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    var highlightedPost by remember { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(highlightedPost) {
+        val target = highlightedPost ?: return@LaunchedEffect
+        delay(1_500)
+        if (highlightedPost == target) highlightedPost = null
+    }
+
+    val homeToPost: (Long) -> Unit = { postNo ->
+        val index = posts.indexOfFirst { it.op?.no == postNo }
+        if (index >= 0) {
+            highlightedPost = postNo
+            scope.launch { listState.animateScrollToItem(index) }
+        }
+    }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        state = listState,
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(posts, key = { it.op?.no ?: it.hashCode() }) { post ->
+            ThreadCard(
+                thread = post,
+                onQuoteClick = homeToPost,
+                highlighted = post.op?.no == highlightedPost,
+            )
         }
     }
 }
