@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -23,7 +22,7 @@ import com.mk.mobilechan.R
 fun TopNavBar(
     title: String,
     onMenuClick: () -> Unit,
-    onSearchClick: () -> Unit,
+    onSettingsClick: (() -> Unit)? = null,
     onBackClick: (() -> Unit)? = null,
 ) {
     Column {
@@ -52,11 +51,13 @@ fun TopNavBar(
                 }
             },
             actions = {
-                IconButton(onClick = onSearchClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = stringResource(R.string.settings_button),
-                    )
+                if (onSettingsClick != null) {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = stringResource(R.string.settings_button),
+                        )
+                    }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(

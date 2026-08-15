@@ -45,7 +45,6 @@ private fun bottomNavItemColors(): NavigationItemColors {
     val scheme = MaterialTheme.colorScheme
     return ShortNavigationBarItemDefaults.colors(
         selectedIconColor = scheme.onPrimary,
-        selectedTextColor = scheme.onPrimary,
         selectedIndicatorColor = scheme.primary,
         unselectedIconColor = scheme.onSurfaceVariant,
         unselectedTextColor = scheme.onSurfaceVariant,

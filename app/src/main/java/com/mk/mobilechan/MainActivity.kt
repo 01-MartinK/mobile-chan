@@ -49,6 +49,9 @@ import com.mk.mobilechan.ui.navigation.AppDestinations
 import com.mk.mobilechan.ui.navigation.AppModules
 import com.mk.mobilechan.ui.navigation.BottomNavBar
 import com.mk.mobilechan.ui.navigation.TopNavBar
+import com.mk.mobilechan.ui.settings.SettingsScreen
+import com.mk.mobilechan.ui.settings.UserSettings
+import com.mk.mobilechan.ui.settings.rememberUserSettings
 import com.mk.mobilechan.ui.theme.MobileChanTheme
 import com.mk.mobilechan.ui.threads.ThreadScreen
 import com.mk.mobilechan.ui.threads.ThreadsScreen
@@ -64,9 +67,7 @@ class MainActivity : ComponentActivity() {
         )
         enableEdgeToEdge()
         setContent {
-            MobileChanTheme {
-                MobileChanApp()
-            }
+            MobileChanApp()
         }
     }
 }
@@ -74,10 +75,19 @@ class MainActivity : ComponentActivity() {
 @PreviewScreenSizes
 @Composable
 fun MobileChanApp() {
+    val settings = rememberUserSettings()
+    MobileChanTheme(theme = settings.theme) {
+        MobileChanAppContent(settings = settings)
+    }
+}
+
+@Composable
+private fun MobileChanAppContent(settings: UserSettings) {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
     var activeBoard by rememberSaveable(stateSaver = ActiveBoardSaver) { mutableStateOf<Board?>(null) }
     var threadPage by rememberSaveable { mutableIntStateOf(1) }
     var activeThreadNo by rememberSaveable { mutableStateOf<Long?>(null) }
+    var settingsOpen by rememberSaveable { mutableStateOf(false) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val (boardsState, retryBoards) = rememberBoardsUiState()
@@ -86,11 +96,16 @@ fun MobileChanApp() {
         activeBoard = board
         threadPage = 1
         activeThreadNo = null
+        settingsOpen = false
         currentDestination = AppDestinations.THREADS
     }
 
-    BackHandler(enabled = activeThreadNo != null) {
-        activeThreadNo = null
+    BackHandler(enabled = settingsOpen || activeThreadNo != null) {
+        if (settingsOpen) {
+            settingsOpen = false
+        } else {
+            activeThreadNo = null
+        }
     }
 
     ModalNavigationDrawer(
@@ -116,6 +131,7 @@ fun MobileChanApp() {
             currentDestination = currentDestination,
             insideBoard = activeBoard != null,
             onDestinationSelected = { destination ->
+                settingsOpen = false
                 activeThreadNo = null
                 currentDestination = destination
             },
@@ -124,10 +140,19 @@ fun MobileChanApp() {
                 modifier = Modifier.fillMaxSize(),
                 topBar = {
                     TopNavBar(
-                        title = topBarTitle(currentDestination, activeBoard, activeThreadNo),
+                        title = topBarTitle(
+                            currentDestination,
+                            activeBoard,
+                            activeThreadNo,
+                            settingsOpen,
+                        ),
                         onMenuClick = { scope.launch { drawerState.open() } },
-                        onSearchClick = { },
-                        onBackClick = activeThreadNo?.let { { activeThreadNo = null } },
+                        onSettingsClick = if (settingsOpen) null else { { settingsOpen = true } },
+                        onBackClick = when {
+                            settingsOpen -> { { settingsOpen = false } }
+                            activeThreadNo != null -> { { activeThreadNo = null } }
+                            else -> null
+                        },
                     )
                 },
             ) { innerPadding ->
@@ -137,6 +162,8 @@ fun MobileChanApp() {
                     activeBoard = activeBoard,
                     threadPage = threadPage,
                     activeThreadNo = activeThreadNo,
+                    settingsOpen = settingsOpen,
+                    settings = settings,
                     onRetryBoards = retryBoards,
                     onBoardSelected = selectBoard,
                     onThreadPageChange = { threadPage = it },
@@ -153,8 +180,10 @@ private fun topBarTitle(
     destination: AppDestinations,
     activeBoard: Board?,
     activeThreadNo: Long?,
+    settingsOpen: Boolean,
 ): String {
     return when {
+        settingsOpen -> stringResource(R.string.breadcrumb_settings)
         activeBoard != null && activeThreadNo != null ->
             stringResource(R.string.board_thread, activeBoard.board, activeThreadNo)
         destination == AppDestinations.CATALOG && activeBoard != null ->
@@ -260,8 +289,21 @@ private fun DestinationPane(
     onBoardSelected: (Board) -> Unit,
     onThreadPageChange: (Int) -> Unit,
     onThreadSelected: (Long) -> Unit,
+    settingsOpen: Boolean,
+    settings: UserSettings,
     modifier: Modifier = Modifier,
 ) {
+    if (settingsOpen) {
+        SettingsScreen(
+            allowNsfw = settings.allowNsfw,
+            onAllowNsfwChange = settings::updateAllowNsfw,
+            theme = settings.theme,
+            onThemeChange = settings::updateTheme,
+            modifier = modifier,
+        )
+        return
+    }
+
     if (activeBoard != null && activeThreadNo != null) {
         ThreadScreen(
             board = activeBoard,
@@ -312,9 +354,7 @@ private fun DestinationPane(
 @Preview(showBackground = true)
 @Composable
 private fun MobileChanAppPreview() {
-    MobileChanTheme {
-        MobileChanApp()
-    }
+    MobileChanApp()
 }
 
 private val ActiveBoardSaver = listSaver<Board?, String>(
