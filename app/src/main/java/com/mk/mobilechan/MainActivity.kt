@@ -55,6 +55,7 @@ import com.mk.mobilechan.ui.settings.rememberUserSettings
 import com.mk.mobilechan.ui.theme.MobileChanTheme
 import com.mk.mobilechan.ui.threads.ThreadScreen
 import com.mk.mobilechan.ui.threads.ThreadsScreen
+import com.mk.mobilechan.ui.welcome.WelcomeScreen
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -77,7 +78,16 @@ class MainActivity : ComponentActivity() {
 fun MobileChanApp() {
     val settings = rememberUserSettings()
     MobileChanTheme(theme = settings.theme) {
-        MobileChanAppContent(settings = settings)
+        if (!settings.welcomeCompleted) {
+            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                WelcomeScreen(
+                    onFinished = settings::completeWelcome,
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
+        } else {
+            MobileChanAppContent(settings = settings)
+        }
     }
 }
 
@@ -119,6 +129,7 @@ private fun MobileChanAppContent(settings: UserSettings) {
                 },
                 boardsState = boardsState,
                 activeBoard = activeBoard,
+                enabledModules = settings.enabledModules,
                 onRetryBoards = retryBoards,
                 onBoardSelected = { board ->
                     selectBoard(board)
@@ -200,6 +211,7 @@ private fun AppDrawer(
     onDestinationSelected: (AppDestinations) -> Unit,
     boardsState: BoardsUiState,
     activeBoard: Board?,
+    enabledModules: Set<AppModules>,
     onRetryBoards: () -> Unit,
     onBoardSelected: (Board) -> Unit,
 ) {
@@ -210,7 +222,10 @@ private fun AppDrawer(
             modifier = Modifier.padding(16.dp),
         )
         HorizontalDivider()
-        AppModules.entries.forEach { destination ->
+        val modules = AppModules.entries.filter {
+            enabledModules.isEmpty() || it in enabledModules
+        }
+        modules.forEach { destination ->
             NavigationDrawerItem(
                 label = { Text(stringResource(destination.labelRes)) },
                 selected = true,

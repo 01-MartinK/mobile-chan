@@ -51,12 +51,15 @@ import com.mk.mobilechan.R
 import com.mk.mobilechan.ui.theme.Background
 import com.mk.mobilechan.ui.theme.BackgroundDark
 import com.mk.mobilechan.ui.theme.MobileChanTheme
+import com.mk.mobilechan.ui.navigation.AppModules
 import com.mk.mobilechan.ui.theme.ThemeMode
 import androidx.core.content.edit
 
 private const val SETTINGS_PREFS = "settings"
 private const val KEY_ALLOW_NSFW = "allow_nsfw"
 private const val KEY_THEME = "theme"
+private const val KEY_WELCOME_COMPLETED = "welcome_completed"
+private const val KEY_ENABLED_MODULES = "enabled_modules"
 private val ICONS_MAP = mapOf(
     Pair(ThemeMode.LIGHT, Icons.Outlined.WbSunny),
     Pair(ThemeMode.DARK, Icons.Outlined.Nightlight),
@@ -66,11 +69,17 @@ private val ICONS_MAP = mapOf(
 class UserSettings internal constructor(
     allowNsfw: Boolean,
     theme: ThemeMode,
+    welcomeCompleted: Boolean,
+    enabledModules: Set<AppModules>,
     private val prefs: SharedPreferences,
 ) {
     var allowNsfw by mutableStateOf(allowNsfw)
         private set
     var theme by mutableStateOf(theme)
+        private set
+    var welcomeCompleted by mutableStateOf(welcomeCompleted)
+        private set
+    var enabledModules by mutableStateOf(enabledModules)
         private set
 
     fun updateAllowNsfw(value: Boolean) {
@@ -82,6 +91,17 @@ class UserSettings internal constructor(
         theme = value
         prefs.edit { putString(KEY_THEME, value.name) }
     }
+
+    fun completeWelcome(modules: Set<AppModules>, isAdult: Boolean) {
+        enabledModules = modules
+        allowNsfw = isAdult
+        welcomeCompleted = true
+        prefs.edit {
+            putBoolean(KEY_WELCOME_COMPLETED, true)
+            putBoolean(KEY_ALLOW_NSFW, isAdult)
+            putStringSet(KEY_ENABLED_MODULES, modules.map { it.name }.toSet())
+        }
+    }
 }
 
 @Composable
@@ -92,6 +112,8 @@ fun rememberUserSettings(): UserSettings {
         UserSettings(
             allowNsfw = prefs.getBoolean(KEY_ALLOW_NSFW, false),
             theme = themeModeFromName(prefs.getString(KEY_THEME, null)),
+            welcomeCompleted = prefs.getBoolean(KEY_WELCOME_COMPLETED, false),
+            enabledModules = modulesFromNames(prefs.getStringSet(KEY_ENABLED_MODULES, null)),
             prefs = prefs,
         )
     }
@@ -99,6 +121,13 @@ fun rememberUserSettings(): UserSettings {
 
 private fun themeModeFromName(name: String?): ThemeMode =
     ThemeMode.entries.firstOrNull { it.name == name } ?: ThemeMode.LIGHT
+
+private fun modulesFromNames(names: Set<String>?): Set<AppModules> {
+    if (names == null) return AppModules.entries.toSet()
+    return names.mapNotNull { name ->
+        AppModules.entries.find { it.name == name }
+    }.toSet()
+}
 
 @Composable
 fun SettingsScreen(
