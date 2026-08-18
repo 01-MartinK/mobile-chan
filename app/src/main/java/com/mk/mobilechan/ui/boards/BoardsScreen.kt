@@ -1,6 +1,6 @@
 package com.mk.mobilechan.ui.boards
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,12 +67,14 @@ fun BoardsScreen(
     state: BoardsUiState,
     onRetry: () -> Unit,
     onBoardSelected: (Board) -> Unit,
+    onExcludeBoard: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     BoardsList(
         state = state,
         onRetry = onRetry,
         onBoardSelected = onBoardSelected,
+        onExcludeBoard = onExcludeBoard,
         modifier = modifier,
     )
 }
@@ -82,6 +84,7 @@ private fun BoardsList(
     state: BoardsUiState,
     onRetry: () -> Unit,
     onBoardSelected: (Board) -> Unit,
+    onExcludeBoard: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -114,7 +117,11 @@ private fun BoardsList(
         is BoardsUiState.Success -> {
             LazyColumn(modifier = modifier.fillMaxSize()) {
                 items(state.boards, key = { it.board }) { board ->
-                    BoardListItem(board, onClick = { onBoardSelected(board) })
+                    BoardListItem(
+                        board = board,
+                        onClick = { onBoardSelected(board) },
+                        onExcludeBoard = onExcludeBoard,
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
@@ -123,16 +130,34 @@ private fun BoardsList(
 }
 
 @Composable
-private fun BoardListItem(board: Board, onClick: () -> Unit) {
-    ListItem(
-        headlineContent = {
-            Text(
-                text = stringResource(R.string.board_item, board.board, board.title),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-        },
-        modifier = Modifier.clickable(onClick = onClick),
-    )
+private fun BoardListItem(
+    board: Board,
+    onClick: () -> Unit,
+    onExcludeBoard: (String) -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    Box {
+        ListItem(
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.board_item, board.board, board.title),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            },
+            modifier = Modifier.combinedClickable(
+                onClick = onClick,
+                onLongClick = { menuExpanded = true },
+                onLongClickLabel = stringResource(R.string.board_menu),
+            ),
+        )
+        BoardContextMenu(
+            board = board,
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+            onExcludeBoard = onExcludeBoard,
+        )
+    }
 }
 
 @Preview(showBackground = true)
@@ -149,6 +174,7 @@ private fun BoardsListPreview() {
             ),
             onRetry = {},
             onBoardSelected = {},
+            onExcludeBoard = {},
         )
     }
 }
