@@ -47,6 +47,10 @@
     <string name="thread_media_download_started">Downloading media</string>
     <string name="thread_media_download_failed">Couldn\'t start download</string>
     <string name="thread_menu_jump_to_op">Jump to OP</string>
+    <string name="nav_bookmarks">Bookmarks</string>
+    <string name="breadcrumb_bookmarks">/bookmarks/ - Bookmarks</string>
+    <string name="bookmarks_empty">No bookmarked threads</string>
+    <string name="thread_menu_remove_bookmark">Remove bookmark</string>
     <string name="nav_thread">Thread</string>
     <string name="settings_button">Settings</string>
     <string name="settings_boards">Boards</string>

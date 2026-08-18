@@ -69,6 +69,8 @@ fun ThreadCard(
     highlighted: Boolean = false,
     showImages: Boolean = true,
     showVideos: Boolean = true,
+    isBookmarked: Boolean = false,
+    onToggleBookmark: (() -> Unit)? = null,
 ) {
     val op = thread.op ?: return
     var showFullRes by remember { mutableStateOf(false) }
@@ -133,6 +135,8 @@ fun ThreadCard(
             thread = thread,
             expanded = menuExpanded,
             onDismissRequest = { menuExpanded = false },
+            isBookmarked = isBookmarked,
+            onToggleBookmark = onToggleBookmark,
         )
     }
 

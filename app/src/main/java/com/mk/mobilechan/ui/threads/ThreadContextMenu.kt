@@ -2,6 +2,7 @@ package com.mk.mobilechan.ui.threads
 
 import android.widget.Toast
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.VerticalAlignTop
@@ -23,6 +24,8 @@ fun ThreadContextMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    isBookmarked: Boolean = false,
+    onToggleBookmark: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val canDownload = thread.imageUrl != null
@@ -32,16 +35,35 @@ fun ThreadContextMenu(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
     ) {
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.thread_menu_bookmark)) },
-            onClick = onDismissRequest,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Outlined.BookmarkBorder,
-                    contentDescription = null,
-                )
-            },
-        )
+        if (onToggleBookmark != null) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(
+                            if (isBookmarked) {
+                                R.string.thread_menu_remove_bookmark
+                            } else {
+                                R.string.thread_menu_bookmark
+                            },
+                        ),
+                    )
+                },
+                onClick = {
+                    onDismissRequest()
+                    onToggleBookmark()
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (isBookmarked) {
+                            Icons.Outlined.Bookmark
+                        } else {
+                            Icons.Outlined.BookmarkBorder
+                        },
+                        contentDescription = null,
+                    )
+                },
+            )
+        }
         DropdownMenuItem(
             text = { Text(stringResource(R.string.thread_menu_download_media)) },
             enabled = canDownload,

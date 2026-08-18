@@ -57,6 +57,8 @@ fun CatalogScreen(
     board: Board,
     onThreadSelected: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    isBookmarked: ((Long) -> Boolean)? = null,
+    onToggleBookmark: ((IndexThread) -> Unit)? = null,
 ) {
     val (state, retry) = rememberCatalogUiState(board.board)
 
@@ -64,6 +66,8 @@ fun CatalogScreen(
         state = state,
         onRetry = retry,
         onThreadSelected = onThreadSelected,
+        isBookmarked = isBookmarked,
+        onToggleBookmark = onToggleBookmark,
         modifier = modifier,
     )
 }
@@ -91,6 +95,8 @@ private fun CatalogGrid(
     onRetry: () -> Unit,
     onThreadSelected: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    isBookmarked: ((Long) -> Boolean)? = null,
+    onToggleBookmark: ((IndexThread) -> Unit)? = null,
 ) {
     when (state) {
         CatalogUiState.Loading -> {
@@ -140,9 +146,15 @@ private fun CatalogGrid(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(state.threads, key = { it.op?.no ?: it.hashCode() }) { thread ->
-                        CatalogCard(thread, onClick = {
-                            thread.op?.no?.let(onThreadSelected)
-                        })
+                        val threadNo = thread.op?.no
+                        CatalogCard(
+                            thread = thread,
+                            onClick = { threadNo?.let(onThreadSelected) },
+                            isBookmarked = threadNo != null && (isBookmarked?.invoke(threadNo) == true),
+                            onToggleBookmark = if (onToggleBookmark != null) {
+                                { onToggleBookmark(thread) }
+                            } else null,
+                        )
                     }
                 }
             }
@@ -151,7 +163,12 @@ private fun CatalogGrid(
 }
 
 @Composable
-private fun CatalogCard(thread: IndexThread, onClick: () -> Unit) {
+private fun CatalogCard(
+    thread: IndexThread,
+    onClick: () -> Unit,
+    isBookmarked: Boolean = false,
+    onToggleBookmark: (() -> Unit)? = null,
+) {
     val op = thread.op ?: return
     val subject = remember(op.sub) {
         op.sub?.takeIf { it.isNotBlank() }?.let(::unescapeHtml)
@@ -215,6 +232,8 @@ private fun CatalogCard(thread: IndexThread, onClick: () -> Unit) {
             thread = thread,
             expanded = menuExpanded,
             onDismissRequest = { menuExpanded = false },
+            isBookmarked = isBookmarked,
+            onToggleBookmark = onToggleBookmark,
         )
     }
 }
