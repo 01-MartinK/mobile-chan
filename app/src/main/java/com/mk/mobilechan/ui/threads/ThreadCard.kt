@@ -101,8 +101,9 @@ fun ThreadCard(
                 )
             }
             op.sub?.takeIf { it.isNotBlank() }?.let { subject ->
+                val unescapedSubject = remember(subject) { unescapeHtml(subject) }
                 Text(
-                    text = unescapeHtml(subject),
+                    text = unescapedSubject,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,

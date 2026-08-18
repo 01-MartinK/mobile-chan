@@ -161,11 +161,13 @@ private fun ThreadPostList(
         if (highlightedPost == target) highlightedPost = null
     }
 
-    val homeToPost: (Long) -> Unit = { postNo ->
-        val index = posts.indexOfFirst { it.op?.no == postNo }
-        if (index >= 0) {
-            highlightedPost = postNo
-            scope.launch { listState.animateScrollToItem(index) }
+    val homeToPost: (Long) -> Unit = remember(posts) {
+        { postNo ->
+            val index = posts.indexOfFirst { it.op?.no == postNo }
+            if (index >= 0) {
+                highlightedPost = postNo
+                scope.launch { listState.animateScrollToItem(index) }
+            }
         }
     }
 
