@@ -2,6 +2,7 @@ package com.mk.mobilechan.ui.threads
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
@@ -53,6 +54,7 @@ import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import androidx.core.text.HtmlCompat
 import com.mk.mobilechan.R
+import com.mk.mobilechan.data.FourChanClient
 import com.mk.mobilechan.data.FourChanMedia
 import com.mk.mobilechan.data.IndexThread
 import com.mk.mobilechan.data.Post
@@ -70,6 +72,7 @@ fun ThreadCard(
 ) {
     val op = thread.op ?: return
     var showFullRes by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
     val isVideo = FourChanMedia.isVideo(op.ext)
     val showMedia = if (isVideo) showVideos else showImages
 
@@ -94,6 +97,7 @@ fun ThreadCard(
                     fullImageUrl = thread.imageUrl,
                     filename = op.filename,
                     onClick = { showFullRes = true },
+                    onLongClick = { menuExpanded = true },
                 )
             }
             op.sub?.takeIf { it.isNotBlank() }?.let { subject ->
@@ -111,20 +115,23 @@ fun ThreadCard(
         }
     }
 
-    if (onClick != null) {
+    Box(modifier = cardModifier) {
         Card(
-            onClick = onClick,
-            modifier = cardModifier,
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = { onClick?.invoke() },
+                    onLongClick = { menuExpanded = true },
+                    onLongClickLabel = stringResource(R.string.thread_menu),
+                ),
             colors = colors,
             elevation = elevation,
             content = { content() },
         )
-    } else {
-        Card(
-            modifier = cardModifier,
-            colors = colors,
-            elevation = elevation,
-            content = { content() },
+        ThreadContextMenu(
+            thread = thread,
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
         )
     }
 
@@ -177,6 +184,7 @@ private fun ThreadImage(
     fullImageUrl: String?,
     filename: String?,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     if (thumbnailUrl == null) return
     AsyncImage(
@@ -186,7 +194,11 @@ private fun ThreadImage(
             .fillMaxWidth()
             .heightIn(max = 240.dp)
             .clip(RoundedCornerShape(8.dp))
-            .clickable(enabled = fullImageUrl != null, onClick = onClick),
+            .combinedClickable(
+                onClick = { if (fullImageUrl != null) onClick() },
+                onLongClick = onLongClick,
+                onLongClickLabel = stringResource(R.string.thread_menu),
+            ),
         contentScale = ContentScale.Fit,
     )
 }
@@ -285,7 +297,7 @@ private fun FullVideoPlayer(
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(
                 DefaultMediaSourceFactory(
-                    DefaultHttpDataSource.Factory().setUserAgent("MobileChan/1.0"),
+                    DefaultHttpDataSource.Factory().setUserAgent(FourChanClient.USER_AGENT),
                 ),
             )
             .build()

@@ -80,6 +80,16 @@ object FourChanMedia {
         val value = ext?.lowercase() ?: return false
         return value == ".webm" || value == ".mp4"
     }
+
+    fun mimeType(ext: String?): String? = when (ext?.lowercase()) {
+        ".jpg", ".jpeg" -> "image/jpeg"
+        ".png" -> "image/png"
+        ".gif" -> "image/gif"
+        ".webp" -> "image/webp"
+        ".webm" -> "video/webm"
+        ".mp4" -> "video/mp4"
+        else -> null
+    }
 }
 
 interface FourChanApi {
@@ -105,6 +115,7 @@ interface FourChanApi {
 }
 
 object FourChanClient {
+    const val USER_AGENT = "MobileChan/1.0"
     private const val BASE_URL = "https://a.4cdn.org/"
 
     val httpClient: OkHttpClient by lazy {
@@ -113,7 +124,7 @@ object FourChanClient {
                 chain.proceed(
                     chain.request()
                         .newBuilder()
-                        .header("User-Agent", "MobileChan/1.0")
+                        .header("User-Agent", USER_AGENT)
                         .build()
                 )
             }

@@ -1,6 +1,7 @@
 package com.mk.mobilechan.ui.catalog
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ import com.mk.mobilechan.data.FourChanClient
 import com.mk.mobilechan.data.IndexThread
 import com.mk.mobilechan.data.Post
 import com.mk.mobilechan.ui.theme.MobileChanTheme
+import com.mk.mobilechan.ui.threads.ThreadContextMenu
 
 sealed interface CatalogUiState {
     data object Loading : CatalogUiState
@@ -153,50 +155,63 @@ private fun CatalogCard(thread: IndexThread, onClick: () -> Unit) {
     val op = thread.op ?: return
     val subject = op.sub?.takeIf { it.isNotBlank() }?.let(::unescapeHtml)
     val snippet = op.com?.takeIf { it.isNotBlank() }?.let(::unescapeHtml)
+    var menuExpanded by remember { mutableStateOf(false) }
 
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Column {
-            CatalogThumbnail(
-                thumbnailUrl = thread.thumbnailUrl,
-                filename = op.filename,
-            )
-            Column(
-                modifier = Modifier.padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.thread_stats, op.replies, op.images),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Box {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { menuExpanded = true },
+                    onLongClickLabel = stringResource(R.string.thread_menu),
+                ),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        ) {
+            Column {
+                CatalogThumbnail(
+                    thumbnailUrl = thread.thumbnailUrl,
+                    filename = op.filename,
                 )
-                if (subject != null) {
+                Column(
+                    modifier = Modifier.padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     Text(
-                        text = subject,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        text = stringResource(R.string.thread_stats, op.replies, op.images),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-                if (snippet != null) {
-                    Text(
-                        text = snippet,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (subject != null) {
+                        Text(
+                            text = subject,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (snippet != null) {
+                        Text(
+                            text = snippet,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
+        ThreadContextMenu(
+            thread = thread,
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        )
     }
 }
 
