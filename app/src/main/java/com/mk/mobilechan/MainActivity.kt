@@ -44,6 +44,7 @@ import com.mk.mobilechan.data.Board
 import com.mk.mobilechan.data.FourChanClient
 import com.mk.mobilechan.ui.boards.BoardsScreen
 import com.mk.mobilechan.ui.boards.BoardsUiState
+import com.mk.mobilechan.ui.boards.excluding
 import com.mk.mobilechan.ui.boards.rememberBoardsUiState
 import com.mk.mobilechan.ui.catalog.CatalogScreen
 import com.mk.mobilechan.ui.navigation.AppDestinations
@@ -103,6 +104,7 @@ private fun MobileChanAppContent(settings: UserSettings) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val (boardsState, retryBoards) = rememberBoardsUiState()
+    val visibleBoardsState = boardsState.excluding(settings.excludedBoards)
 
     val selectBoard: (Board) -> Unit = { board ->
         activeBoard = board
@@ -129,7 +131,7 @@ private fun MobileChanAppContent(settings: UserSettings) {
                     currentDestination = destination
                     scope.launch { drawerState.close() }
                 },
-                boardsState = boardsState,
+                boardsState = visibleBoardsState,
                 activeBoard = activeBoard,
                 enabledModules = settings.enabledModules,
                 onRetryBoards = retryBoards,
@@ -171,7 +173,7 @@ private fun MobileChanAppContent(settings: UserSettings) {
             ) { innerPadding ->
                 DestinationPane(
                     destination = currentDestination,
-                    boardsState = boardsState,
+                    boardsState = visibleBoardsState,
                     activeBoard = activeBoard,
                     threadPage = threadPage,
                     activeThreadNo = activeThreadNo,
@@ -316,6 +318,13 @@ private fun DestinationPane(
             onAllowNsfwChange = settings::updateAllowNsfw,
             theme = settings.theme,
             onThemeChange = settings::updateTheme,
+            excludedBoards = settings.excludedBoards,
+            onAddExcludedBoard = settings::addExcludedBoard,
+            onRemoveExcludedBoard = settings::removeExcludedBoard,
+            showImages = settings.showImages,
+            onShowImagesChange = settings::updateShowImages,
+            showVideos = settings.showVideos,
+            onShowVideosChange = settings::updateShowVideos,
             modifier = modifier,
         )
         return
@@ -337,12 +346,16 @@ private fun DestinationPane(
                     page = threadPage,
                     onPageChange = onThreadPageChange,
                     onThreadSelected = onThreadSelected,
+                    showImages = settings.showImages,
+                    showVideos = settings.showVideos,
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (activeThreadNo != null) {
                     ThreadScreen(
                         board = activeBoard,
                         threadNo = activeThreadNo,
+                        showImages = settings.showImages,
+                        showVideos = settings.showVideos,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -352,6 +365,8 @@ private fun DestinationPane(
             activeBoard != null && activeThreadNo != null -> ThreadScreen(
                 board = activeBoard,
                 threadNo = activeThreadNo,
+                showImages = settings.showImages,
+                showVideos = settings.showVideos,
                 modifier = modifier,
             )
             activeBoard != null -> CatalogScreen(

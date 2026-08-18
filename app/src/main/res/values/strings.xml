@@ -13,6 +13,7 @@
     <string name="breadcrumb_activity">/activity/ - Activity</string>
     <string name="breadcrumb_profile">/profile/ - Profile</string>
     <string name="board_item">/%1$s/ - %2$s</string>
+    <string name="board_tag">/%1$s/</string>
     <string name="board_catalog">/%1$s/ - Catalog</string>
     <string name="board_thread">/%1$s/thread/%2$d</string>
     <string name="boards_error">Couldn\'t load boards</string>
@@ -40,7 +41,18 @@
     <string name="thread_page_next">Next</string>
     <string name="nav_thread">Thread</string>
     <string name="settings_button">Settings</string>
+    <string name="settings_boards">Boards</string>
     <string name="settings_allow_nsfw">Allow NSFW</string>
+    <string name="settings_excluded_boards">Excluded boards</string>
+    <string name="settings_exclude_board_hint">Board tag</string>
+    <string name="settings_exclude_board_add">Add board</string>
+    <string name="settings_exclude_board_remove">Remove board</string>
+    <string name="settings_excluded_boards_empty">No excluded boards</string>
+    <string name="settings_excluded_boards_expand">Show excluded boards</string>
+    <string name="settings_excluded_boards_collapse">Hide excluded boards</string>
+    <string name="settings_threads">Threads</string>
+    <string name="settings_show_images">Show images</string>
+    <string name="settings_show_videos">Show videos</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>

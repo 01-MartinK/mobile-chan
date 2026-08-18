@@ -65,9 +65,13 @@ fun ThreadCard(
     onClick: (() -> Unit)? = null,
     onQuoteClick: ((Long) -> Unit)? = null,
     highlighted: Boolean = false,
+    showImages: Boolean = true,
+    showVideos: Boolean = true,
 ) {
     val op = thread.op ?: return
     var showFullRes by remember { mutableStateOf(false) }
+    val isVideo = FourChanMedia.isVideo(op.ext)
+    val showMedia = if (isVideo) showVideos else showImages
 
     val colors = CardDefaults.cardColors(
         containerColor = if (highlighted) {
@@ -84,12 +88,14 @@ fun ThreadCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ThreadHeader(op)
-            ThreadImage(
-                thumbnailUrl = thread.thumbnailUrl,
-                fullImageUrl = thread.imageUrl,
-                filename = op.filename,
-                onClick = { showFullRes = true },
-            )
+            if (showMedia) {
+                ThreadImage(
+                    thumbnailUrl = thread.thumbnailUrl,
+                    fullImageUrl = thread.imageUrl,
+                    filename = op.filename,
+                    onClick = { showFullRes = true },
+                )
+            }
             op.sub?.takeIf { it.isNotBlank() }?.let { subject ->
                 Text(
                     text = unescapeHtml(subject),
@@ -122,7 +128,7 @@ fun ThreadCard(
         )
     }
 
-    if (showFullRes) {
+    if (showFullRes && showMedia) {
         thread.imageUrl?.let { url ->
             FullMediaOverlay(
                 url = url,

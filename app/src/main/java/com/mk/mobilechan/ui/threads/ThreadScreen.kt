@@ -46,6 +46,8 @@ fun ThreadScreen(
     board: Board,
     threadNo: Long,
     modifier: Modifier = Modifier,
+    showImages: Boolean = true,
+    showVideos: Boolean = true,
 ) {
     val (state, retry) = rememberThreadUiState(board.board, threadNo)
 
@@ -56,6 +58,8 @@ fun ThreadScreen(
         ThreadPosts(
             state = state,
             onRetry = retry,
+            showImages = showImages,
+            showVideos = showVideos,
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -86,6 +90,8 @@ private fun ThreadPosts(
     state: ThreadUiState,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    showImages: Boolean = true,
+    showVideos: Boolean = true,
 ) {
     when (state) {
         ThreadUiState.Loading -> {
@@ -129,6 +135,8 @@ private fun ThreadPosts(
             } else {
                 ThreadPostList(
                     posts = state.posts,
+                    showImages = showImages,
+                    showVideos = showVideos,
                     modifier = modifier,
                 )
             }
@@ -140,6 +148,8 @@ private fun ThreadPosts(
 private fun ThreadPostList(
     posts: List<IndexThread>,
     modifier: Modifier = Modifier,
+    showImages: Boolean = true,
+    showVideos: Boolean = true,
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -170,6 +180,8 @@ private fun ThreadPostList(
                 thread = post,
                 onQuoteClick = homeToPost,
                 highlighted = post.op?.no == highlightedPost,
+                showImages = showImages,
+                showVideos = showVideos,
             )
         }
     }

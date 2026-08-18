@@ -46,6 +46,8 @@ fun ThreadsScreen(
     onPageChange: (Int) -> Unit,
     onThreadSelected: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    showImages: Boolean = true,
+    showVideos: Boolean = true,
 ) {
     val (state, retry) = rememberThreadsUiState(board.board, page)
 
@@ -56,6 +58,8 @@ fun ThreadsScreen(
         onRetry = retry,
         onPageChange = onPageChange,
         onThreadSelected = onThreadSelected,
+        showImages = showImages,
+        showVideos = showVideos,
         modifier = modifier,
     )
 }
@@ -89,6 +93,8 @@ private fun ThreadsList(
     onPageChange: (Int) -> Unit,
     onThreadSelected: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    showImages: Boolean = true,
+    showVideos: Boolean = true,
 ) {
     when (state) {
         ThreadsUiState.Loading -> {
@@ -136,6 +142,8 @@ private fun ThreadsList(
                         ThreadCard(
                             thread = thread,
                             onClick = { thread.op?.no?.let(onThreadSelected) },
+                            showImages = showImages,
+                            showVideos = showVideos,
                         )
                     }
                 }

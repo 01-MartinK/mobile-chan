@@ -36,6 +36,12 @@ sealed interface BoardsUiState {
     data class Success(val boards: List<Board>) : BoardsUiState
 }
 
+fun BoardsUiState.excluding(boardTags: Collection<String>): BoardsUiState {
+    if (this !is BoardsUiState.Success || boardTags.isEmpty()) return this
+    val excluded = boardTags.map { it.lowercase() }.toSet()
+    return copy(boards = boards.filter { it.board.lowercase() !in excluded })
+}
+
 @Composable
 fun rememberBoardsUiState(): Pair<BoardsUiState, () -> Unit> {
     var state by remember { mutableStateOf<BoardsUiState>(BoardsUiState.Loading) }
