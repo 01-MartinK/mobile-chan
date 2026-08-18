@@ -107,7 +107,9 @@ private fun MobileChanAppContent(settings: UserSettings) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val (boardsState, retryBoards) = rememberBoardsUiState()
-    val visibleBoardsState = boardsState.excluding(settings.excludedBoards)
+    val visibleBoardsState = remember(boardsState, settings.excludedBoards) {
+        boardsState.excluding(settings.excludedBoards)
+    }
 
     val selectBoard: (Board) -> Unit = { board ->
         activeBoard = board
@@ -236,8 +238,10 @@ private fun AppDrawer(
             modifier = Modifier.padding(16.dp),
         )
         HorizontalDivider()
-        val modules = AppModules.entries.filter {
-            enabledModules.isEmpty() || it in enabledModules
+        val modules = remember(enabledModules) {
+            AppModules.entries.filter {
+                enabledModules.isEmpty() || it in enabledModules
+            }
         }
         modules.forEach { destination ->
             NavigationDrawerItem(

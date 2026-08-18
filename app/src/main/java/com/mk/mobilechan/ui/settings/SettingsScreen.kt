@@ -410,7 +410,8 @@ private fun ExcludedBoardsSetting(
                             modifier = Modifier.padding(16.dp),
                         )
                     } else {
-                        excludedBoards.sorted().forEachIndexed { index, tag ->
+                        val sortedBoards = remember(excludedBoards) { excludedBoards.sorted() }
+                        sortedBoards.forEachIndexed { index, tag ->
                             if (index > 0) {
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             }

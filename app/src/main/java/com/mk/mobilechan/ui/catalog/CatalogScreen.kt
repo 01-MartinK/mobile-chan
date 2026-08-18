@@ -153,8 +153,12 @@ private fun CatalogGrid(
 @Composable
 private fun CatalogCard(thread: IndexThread, onClick: () -> Unit) {
     val op = thread.op ?: return
-    val subject = op.sub?.takeIf { it.isNotBlank() }?.let(::unescapeHtml)
-    val snippet = op.com?.takeIf { it.isNotBlank() }?.let(::unescapeHtml)
+    val subject = remember(op.sub) {
+        op.sub?.takeIf { it.isNotBlank() }?.let(::unescapeHtml)
+    }
+    val snippet = remember(op.com) {
+        op.com?.takeIf { it.isNotBlank() }?.let(::unescapeHtml)
+    }
     var menuExpanded by remember { mutableStateOf(false) }
 
     Box {
