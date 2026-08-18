@@ -39,6 +39,8 @@
     <string name="thread_page">Page %1$d</string>
     <string name="thread_page_prev">Previous</string>
     <string name="thread_page_next">Next</string>
+    <string name="board_menu">Board actions</string>
+    <string name="board_menu_exclude">Exclude board</string>
     <string name="thread_menu">Thread actions</string>
     <string name="thread_menu_bookmark">Bookmark</string>
     <string name="thread_menu_download_media">Download media</string>
