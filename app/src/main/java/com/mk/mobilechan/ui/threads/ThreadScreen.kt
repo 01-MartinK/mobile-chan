@@ -48,6 +48,8 @@ fun ThreadScreen(
     modifier: Modifier = Modifier,
     showImages: Boolean = true,
     showVideos: Boolean = true,
+    isBookmarked: Boolean = false,
+    onToggleBookmark: ((IndexThread) -> Unit)? = null,
 ) {
     val (state, retry) = rememberThreadUiState(board.board, threadNo)
 
@@ -60,6 +62,8 @@ fun ThreadScreen(
             onRetry = retry,
             showImages = showImages,
             showVideos = showVideos,
+            isBookmarked = isBookmarked,
+            onToggleBookmark = onToggleBookmark,
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -92,6 +96,8 @@ private fun ThreadPosts(
     modifier: Modifier = Modifier,
     showImages: Boolean = true,
     showVideos: Boolean = true,
+    isBookmarked: Boolean = false,
+    onToggleBookmark: ((IndexThread) -> Unit)? = null,
 ) {
     when (state) {
         ThreadUiState.Loading -> {
@@ -137,6 +143,8 @@ private fun ThreadPosts(
                     posts = state.posts,
                     showImages = showImages,
                     showVideos = showVideos,
+                    isBookmarked = isBookmarked,
+                    onToggleBookmark = onToggleBookmark,
                     modifier = modifier,
                 )
             }
@@ -150,6 +158,8 @@ private fun ThreadPostList(
     modifier: Modifier = Modifier,
     showImages: Boolean = true,
     showVideos: Boolean = true,
+    isBookmarked: Boolean = false,
+    onToggleBookmark: ((IndexThread) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -176,12 +186,17 @@ private fun ThreadPostList(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(posts, key = { it.op?.no ?: it.hashCode() }) { post ->
+            val isOp = post.op?.resto == 0L || post == posts.firstOrNull()
             ThreadCard(
                 thread = post,
                 onQuoteClick = homeToPost,
                 highlighted = post.op?.no == highlightedPost,
                 showImages = showImages,
                 showVideos = showVideos,
+                isBookmarked = if (isOp) isBookmarked else false,
+                onToggleBookmark = if (isOp && onToggleBookmark != null) {
+                    { onToggleBookmark(post) }
+                } else null,
             )
         }
     }

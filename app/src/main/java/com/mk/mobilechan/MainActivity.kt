@@ -41,11 +41,14 @@ import coil.Coil
 import coil.ImageLoader
 import coil.decode.ImageDecoderDecoder
 import com.mk.mobilechan.data.Board
+import com.mk.mobilechan.data.BookmarksStore
 import com.mk.mobilechan.data.FourChanClient
+import com.mk.mobilechan.data.rememberBookmarksStore
 import com.mk.mobilechan.ui.boards.BoardsScreen
 import com.mk.mobilechan.ui.boards.BoardsUiState
 import com.mk.mobilechan.ui.boards.excluding
 import com.mk.mobilechan.ui.boards.rememberBoardsUiState
+import com.mk.mobilechan.ui.bookmarks.BookmarksScreen
 import com.mk.mobilechan.ui.catalog.CatalogScreen
 import com.mk.mobilechan.ui.navigation.AppDestinations
 import com.mk.mobilechan.ui.navigation.AppModules
@@ -96,6 +99,7 @@ fun MobileChanApp() {
 
 @Composable
 private fun MobileChanAppContent(settings: UserSettings) {
+    val bookmarksStore = rememberBookmarksStore()
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
     var activeBoard by rememberSaveable(stateSaver = ActiveBoardSaver) { mutableStateOf<Board?>(null) }
     var threadPage by rememberSaveable { mutableIntStateOf(1) }
@@ -179,10 +183,16 @@ private fun MobileChanAppContent(settings: UserSettings) {
                     activeThreadNo = activeThreadNo,
                     settingsOpen = settingsOpen,
                     settings = settings,
+                    bookmarksStore = bookmarksStore,
                     onRetryBoards = retryBoards,
                     onBoardSelected = selectBoard,
                     onThreadPageChange = { threadPage = it },
                     onThreadSelected = { activeThreadNo = it },
+                    onNavigateToThread = { board, threadNo ->
+                        activeBoard = board
+                        activeThreadNo = threadNo
+                        currentDestination = AppDestinations.THREADS
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -308,8 +318,10 @@ private fun DestinationPane(
     onBoardSelected: (Board) -> Unit,
     onThreadPageChange: (Int) -> Unit,
     onThreadSelected: (Long) -> Unit,
+    onNavigateToThread: (Board, Long) -> Unit,
     settingsOpen: Boolean,
     settings: UserSettings,
+    bookmarksStore: BookmarksStore,
     modifier: Modifier = Modifier,
 ) {
     if (settingsOpen) {
@@ -339,6 +351,18 @@ private fun DestinationPane(
                 modifier = modifier,
             )
         }
+        AppDestinations.BOOKMARKS -> {
+            BookmarksScreen(
+                bookmarks = bookmarksStore.bookmarks,
+                onThreadSelected = onNavigateToThread,
+                onToggleBookmark = { board, thread ->
+                    bookmarksStore.toggleBookmark(board, thread)
+                },
+                showImages = settings.showImages,
+                showVideos = settings.showVideos,
+                modifier = modifier,
+            )
+        }
         AppDestinations.THREADS -> if (activeBoard != null) {
             Box(modifier = modifier) {
                 ThreadsScreen(
@@ -348,6 +372,12 @@ private fun DestinationPane(
                     onThreadSelected = onThreadSelected,
                     showImages = settings.showImages,
                     showVideos = settings.showVideos,
+                    isBookmarked = { threadNo ->
+                        bookmarksStore.isBookmarked(activeBoard.board, threadNo)
+                    },
+                    onToggleBookmark = { thread ->
+                        bookmarksStore.toggleBookmark(activeBoard, thread)
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (activeThreadNo != null) {
@@ -356,6 +386,10 @@ private fun DestinationPane(
                         threadNo = activeThreadNo,
                         showImages = settings.showImages,
                         showVideos = settings.showVideos,
+                        isBookmarked = bookmarksStore.isBookmarked(activeBoard.board, activeThreadNo),
+                        onToggleBookmark = { thread ->
+                            bookmarksStore.toggleBookmark(activeBoard, thread)
+                        },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -367,23 +401,33 @@ private fun DestinationPane(
                 threadNo = activeThreadNo,
                 showImages = settings.showImages,
                 showVideos = settings.showVideos,
+                isBookmarked = bookmarksStore.isBookmarked(activeBoard.board, activeThreadNo),
+                onToggleBookmark = { thread ->
+                    bookmarksStore.toggleBookmark(activeBoard, thread)
+                },
                 modifier = modifier,
             )
             activeBoard != null -> CatalogScreen(
                 board = activeBoard,
                 onThreadSelected = onThreadSelected,
+                isBookmarked = { threadNo ->
+                    bookmarksStore.isBookmarked(activeBoard.board, threadNo)
+                },
+                onToggleBookmark = { thread ->
+                    bookmarksStore.toggleBookmark(activeBoard, thread)
+                },
                 modifier = modifier,
             )
-        }
-        else -> Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(destination.labelRes),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            else -> Box(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(destination.labelRes),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
         }
     }
 }

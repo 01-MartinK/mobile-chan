@@ -48,6 +48,8 @@ fun ThreadsScreen(
     modifier: Modifier = Modifier,
     showImages: Boolean = true,
     showVideos: Boolean = true,
+    isBookmarked: ((Long) -> Boolean)? = null,
+    onToggleBookmark: ((IndexThread) -> Unit)? = null,
 ) {
     val (state, retry) = rememberThreadsUiState(board.board, page)
 
@@ -60,6 +62,8 @@ fun ThreadsScreen(
         onThreadSelected = onThreadSelected,
         showImages = showImages,
         showVideos = showVideos,
+        isBookmarked = isBookmarked,
+        onToggleBookmark = onToggleBookmark,
         modifier = modifier,
     )
 }
@@ -95,6 +99,8 @@ private fun ThreadsList(
     modifier: Modifier = Modifier,
     showImages: Boolean = true,
     showVideos: Boolean = true,
+    isBookmarked: ((Long) -> Boolean)? = null,
+    onToggleBookmark: ((IndexThread) -> Unit)? = null,
 ) {
     when (state) {
         ThreadsUiState.Loading -> {
@@ -139,11 +145,16 @@ private fun ThreadsList(
                     }
                 } else {
                     items(state.threads, key = { it.op?.no ?: it.hashCode() }) { thread ->
+                        val threadNo = thread.op?.no
                         ThreadCard(
                             thread = thread,
-                            onClick = { thread.op?.no?.let(onThreadSelected) },
+                            onClick = { threadNo?.let(onThreadSelected) },
                             showImages = showImages,
                             showVideos = showVideos,
+                            isBookmarked = threadNo != null && (isBookmarked?.invoke(threadNo) == true),
+                            onToggleBookmark = if (onToggleBookmark != null) {
+                                { onToggleBookmark(thread) }
+                            } else null,
                         )
                     }
                 }
