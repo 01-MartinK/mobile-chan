@@ -322,7 +322,7 @@ private fun ExcludedBoardsSetting(
     onRemoveExcludedBoard: (String) -> Unit,
 ) {
     var boardTagInput by rememberSaveable { mutableStateOf("") }
-    var excludedExpanded by rememberSaveable { mutableStateOf(true) }
+    var excludedExpanded by rememberSaveable { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val shape = RoundedCornerShape(12.dp)
 
