@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,6 +45,7 @@ import coil.decode.ImageDecoderDecoder
 import com.mk.mobilechan.data.Board
 import com.mk.mobilechan.data.BookmarksStore
 import com.mk.mobilechan.data.FourChanClient
+import com.mk.mobilechan.ui.boards.BoardContextMenu
 import com.mk.mobilechan.data.rememberBookmarksStore
 import com.mk.mobilechan.ui.boards.BoardsScreen
 import com.mk.mobilechan.ui.boards.BoardsUiState
@@ -142,6 +145,9 @@ private fun MobileChanAppContent(settings: UserSettings) {
                 onBoardSelected = { board ->
                     selectBoard(board)
                     scope.launch { drawerState.close() }
+                    },
+                    onExcludeBoard = { boardTag ->
+                        settings.addExcludedBoard(boardTag)
                 },
             )
         },
@@ -186,6 +192,9 @@ private fun MobileChanAppContent(settings: UserSettings) {
                     bookmarksStore = bookmarksStore,
                     onRetryBoards = retryBoards,
                     onBoardSelected = selectBoard,
+                        onExcludeBoard = { boardTag ->
+                            settings.addExcludedBoard(boardTag)
+                        },
                     onThreadPageChange = { threadPage = it },
                     onThreadSelected = { activeThreadNo = it },
                     onNavigateToThread = { board, threadNo ->
@@ -228,6 +237,7 @@ private fun AppDrawer(
     enabledModules: Set<AppModules>,
     onRetryBoards: () -> Unit,
     onBoardSelected: (Board) -> Unit,
+    onExcludeBoard: (String) -> Unit = {},
 ) {
     ModalDrawerSheet {
         Text(
@@ -286,24 +296,55 @@ private fun AppDrawer(
             is BoardsUiState.Success -> {
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(boardsState.boards, key = { it.board }) { board ->
-                        NavigationDrawerItem(
-                            label = {
-                                Text(
-                                    text = stringResource(
-                                        R.string.board_item,
-                                        board.board,
-                                        board.title,
-                                    ),
-                                )
-                            },
+                        AppDrawerBoardItem(
+                            board = board,
                             selected = board.board == activeBoard?.board,
                             onClick = { onBoardSelected(board) },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            onExcludeBoard = onExcludeBoard,
                         )
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AppDrawerBoardItem(
+    board: Board,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onExcludeBoard: (String) -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    Box {
+        NavigationDrawerItem(
+            label = {
+                Text(
+                    text = stringResource(
+                        R.string.board_item,
+                        board.board,
+                        board.title,
+                    ),
+                )
+            },
+            selected = selected,
+            onClick = onClick,
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { menuExpanded = true },
+                    onLongClickLabel = stringResource(R.string.board_menu),
+                ),
+        )
+        BoardContextMenu(
+            board = board,
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+            onExcludeBoard = onExcludeBoard,
+        )
     }
 }
 
@@ -316,6 +357,7 @@ private fun DestinationPane(
     activeThreadNo: Long?,
     onRetryBoards: () -> Unit,
     onBoardSelected: (Board) -> Unit,
+    onExcludeBoard: (String) -> Unit = {},
     onThreadPageChange: (Int) -> Unit,
     onThreadSelected: (Long) -> Unit,
     onNavigateToThread: (Board, Long) -> Unit,
@@ -348,6 +390,7 @@ private fun DestinationPane(
                 state = boardsState,
                 onRetry = onRetryBoards,
                 onBoardSelected = onBoardSelected,
+                onExcludeBoard = onExcludeBoard,
                 modifier = modifier,
             )
         }
