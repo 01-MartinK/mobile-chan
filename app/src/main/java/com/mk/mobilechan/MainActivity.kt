@@ -104,7 +104,7 @@ fun MobileChanApp() {
 private fun MobileChanAppContent(settings: UserSettings) {
     val bookmarksStore = rememberBookmarksStore()
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
-    var activeBoard by rememberSaveable(stateSaver = ActiveBoardSaver) { mutableStateOf<Board?>(null) }
+    var activeBoard by rememberSaveable(stateSaver = ActiveBoardSaver) { mutableStateOf(null) }
     var threadPage by rememberSaveable { mutableIntStateOf(1) }
     var activeThreadNo by rememberSaveable { mutableStateOf<Long?>(null) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
@@ -133,11 +133,6 @@ private fun MobileChanAppContent(settings: UserSettings) {
         drawerState = drawerState,
         drawerContent = {
             AppDrawer(
-                currentDestination = currentDestination,
-                onDestinationSelected = { destination ->
-                    currentDestination = destination
-                    scope.launch { drawerState.close() }
-                },
                 boardsState = visibleBoardsState,
                 activeBoard = activeBoard,
                 enabledModules = settings.enabledModules,
@@ -230,8 +225,6 @@ private fun topBarTitle(
 
 @Composable
 private fun AppDrawer(
-    currentDestination: AppDestinations,
-    onDestinationSelected: (AppDestinations) -> Unit,
     boardsState: BoardsUiState,
     activeBoard: Board?,
     enabledModules: Set<AppModules>,
@@ -350,6 +343,7 @@ private fun AppDrawerBoardItem(
 
 @Composable
 private fun DestinationPane(
+    modifier: Modifier = Modifier,
     destination: AppDestinations,
     boardsState: BoardsUiState,
     activeBoard: Board?,
@@ -364,7 +358,6 @@ private fun DestinationPane(
     settingsOpen: Boolean,
     settings: UserSettings,
     bookmarksStore: BookmarksStore,
-    modifier: Modifier = Modifier,
 ) {
     if (settingsOpen) {
         SettingsScreen(

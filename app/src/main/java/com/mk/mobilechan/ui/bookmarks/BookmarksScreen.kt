@@ -24,12 +24,12 @@ import com.mk.mobilechan.ui.threads.ThreadCard
 
 @Composable
 fun BookmarksScreen(
+    modifier: Modifier = Modifier,
     bookmarks: List<BookmarkedThread>,
     onThreadSelected: (Board, Long) -> Unit,
     onToggleBookmark: (Board, com.mk.mobilechan.data.IndexThread) -> Unit,
     showImages: Boolean = true,
     showVideos: Boolean = true,
-    modifier: Modifier = Modifier,
 ) {
     if (bookmarks.isEmpty()) {
         Box(
