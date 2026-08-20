@@ -54,8 +54,8 @@ import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import androidx.core.text.HtmlCompat
 import com.mk.mobilechan.R
-import com.mk.mobilechan.data.FourChanClient
-import com.mk.mobilechan.data.FourChanMedia
+import com.mk.mobilechan.data.ChanHttp
+import com.mk.mobilechan.data.ChanMedia
 import com.mk.mobilechan.data.IndexThread
 import com.mk.mobilechan.data.Post
 import com.mk.mobilechan.ui.theme.MobileChanTheme
@@ -75,7 +75,7 @@ fun ThreadCard(
     val op = thread.op ?: return
     var showFullRes by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
-    val isVideo = FourChanMedia.isVideo(op.ext)
+    val isVideo = ChanMedia.isVideo(op.ext, op.mime)
     val showMedia = if (isVideo) showVideos else showImages
 
     val colors = CardDefaults.cardColors(
@@ -145,6 +145,7 @@ fun ThreadCard(
             FullMediaOverlay(
                 url = url,
                 ext = op.ext,
+                mime = op.mime,
                 filename = op.filename,
                 onDismiss = { showFullRes = false },
             )
@@ -212,6 +213,7 @@ private fun ThreadImage(
 private fun FullMediaOverlay(
     url: String,
     ext: String?,
+    mime: String? = null,
     filename: String?,
     onDismiss: () -> Unit,
 ) {
@@ -225,7 +227,7 @@ private fun FullMediaOverlay(
                 .background(Color.Black.copy(alpha = 0.92f)),
             contentAlignment = Alignment.Center,
         ) {
-            if (FourChanMedia.isVideo(ext)) {
+            if (ChanMedia.isVideo(ext, mime)) {
                 FullVideoPlayer(
                     url = url,
                     filename = filename,
@@ -302,7 +304,7 @@ private fun FullVideoPlayer(
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(
                 DefaultMediaSourceFactory(
-                    DefaultHttpDataSource.Factory().setUserAgent(FourChanClient.USER_AGENT),
+                    DefaultHttpDataSource.Factory().setUserAgent(ChanHttp.USER_AGENT),
                 ),
             )
             .build()
@@ -475,7 +477,7 @@ private const val NEWLINE_PLACEHOLDER = "\u0000"
 private val BR_TAG = Regex("<br\\s*/?>", RegexOption.IGNORE_CASE)
 private val WBR_TAG = Regex("<wbr\\s*/?>", RegexOption.IGNORE_CASE)
 private val STRIP_TAGS = Regex("<[^>]+>")
-private val HREF_POST_NO = Regex("""#p(\d+)""", RegexOption.IGNORE_CASE)
+private val HREF_POST_NO = Regex("""#p?(\d+)""", RegexOption.IGNORE_CASE)
 private val QUOTE_LINK_NO = Regex(""">>(\d+)""")
 private val COMMENT_TOKEN = Regex(
     """<span class="quote">([\s\S]*?)</span>|<a[^>]*class="quotelink"[^>]*>([\s\S]*?)</a>|<[^>]+>""",

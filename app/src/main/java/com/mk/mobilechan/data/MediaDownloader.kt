@@ -29,7 +29,7 @@ object MediaDownloader {
             context = context,
             url = url,
             filename = filename(op?.filename, op?.ext, op?.tim),
-            mimeType = FourChanMedia.mimeType(op?.ext),
+            mimeType = ChanMedia.mimeType(op?.ext, op?.mime),
         )
     }
 
@@ -46,8 +46,8 @@ object MediaDownloader {
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)
-            .addRequestHeader("User-Agent", FourChanClient.USER_AGENT)
-            .addRequestHeader("Referer", REFERER)
+            .addRequestHeader("User-Agent", ChanHttp.USER_AGENT)
+            .addRequestHeader("Referer", refererFor(url))
         mimeType?.let { request.setMimeType(it) }
         return try {
             manager.enqueue(request)
@@ -57,7 +57,16 @@ object MediaDownloader {
         }
     }
 
-    private const val REFERER = "https://boards.4chan.org/"
+    private fun refererFor(url: String): String {
+        val uri = url.toUri()
+        val host = uri.host ?: return "https://boards.4chan.org/"
+        return when {
+            host.endsWith("4cdn.org") || host.endsWith("4chan.org") ->
+                "https://boards.4chan.org/"
+            else -> "${uri.scheme ?: "https"}://$host/"
+        }
+    }
+
     private const val MAX_FILENAME_LENGTH = 80
     private val ILLEGAL_FILENAME_CHARS = Regex("""[\\/:*?"<>|]""")
 }

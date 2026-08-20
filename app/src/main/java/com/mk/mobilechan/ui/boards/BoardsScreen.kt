@@ -16,9 +16,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,9 +26,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.mk.mobilechan.R
 import com.mk.mobilechan.data.Board
-import com.mk.mobilechan.data.FourChanClient
+import com.mk.mobilechan.data.Source
+import com.mk.mobilechan.ui.navigation.LocalSource
 import com.mk.mobilechan.ui.theme.MobileChanTheme
-import kotlinx.coroutines.launch
 
 sealed interface BoardsUiState {
     data object Loading : BoardsUiState
@@ -43,23 +43,22 @@ fun BoardsUiState.excluding(boardTags: Collection<String>): BoardsUiState {
 }
 
 @Composable
-fun rememberBoardsUiState(): Pair<BoardsUiState, () -> Unit> {
+fun rememberBoardsUiState(
+    source: Source = LocalSource.current,
+): Pair<BoardsUiState, () -> Unit> {
     var state by remember { mutableStateOf<BoardsUiState>(BoardsUiState.Loading) }
-    val scope = rememberCoroutineScope()
+    var retryKey by remember { mutableIntStateOf(0) }
 
-    val loadBoards: () -> Unit = {
+    LaunchedEffect(source.id, retryKey) {
         state = BoardsUiState.Loading
-        scope.launch {
-            state = try {
-                BoardsUiState.Success(FourChanClient.api.getBoards().boards)
-            } catch (_: Exception) {
-                BoardsUiState.Error
-            }
+        state = try {
+            BoardsUiState.Success(source.getBoards())
+        } catch (_: Exception) {
+            BoardsUiState.Error
         }
     }
 
-    LaunchedEffect(Unit) { loadBoards() }
-    return state to loadBoards
+    return state to { retryKey++ }
 }
 
 @Composable

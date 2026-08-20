@@ -31,6 +31,7 @@ Example from provided post (`tim: 1786665896682816`, `ext: .jpg`):
 - **Has JSON endpoints** (static files + action API).
 - **Key read endpoints**:
   - `/index.json` – site overview
+  - `/boards.js?json=1`
   - `/{board}/catalog.json`
   - `/{board}/{page}.json`
   - `/{board}/res/{threadId}.json`

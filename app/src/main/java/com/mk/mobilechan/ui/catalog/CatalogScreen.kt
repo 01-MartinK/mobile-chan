@@ -40,9 +40,10 @@ import androidx.core.text.HtmlCompat
 import coil.compose.AsyncImage
 import com.mk.mobilechan.R
 import com.mk.mobilechan.data.Board
-import com.mk.mobilechan.data.FourChanClient
 import com.mk.mobilechan.data.IndexThread
 import com.mk.mobilechan.data.Post
+import com.mk.mobilechan.data.Source
+import com.mk.mobilechan.ui.navigation.LocalSource
 import com.mk.mobilechan.ui.theme.MobileChanTheme
 import com.mk.mobilechan.ui.threads.ThreadContextMenu
 
@@ -73,14 +74,17 @@ fun CatalogScreen(
 }
 
 @Composable
-private fun rememberCatalogUiState(board: String): Pair<CatalogUiState, () -> Unit> {
+private fun rememberCatalogUiState(
+    board: String,
+    source: Source = LocalSource.current,
+): Pair<CatalogUiState, () -> Unit> {
     var state by remember { mutableStateOf<CatalogUiState>(CatalogUiState.Loading) }
     var retryKey by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(board, retryKey) {
+    LaunchedEffect(source.id, board, retryKey) {
         state = CatalogUiState.Loading
         state = try {
-            CatalogUiState.Success(FourChanClient.getCatalog(board))
+            CatalogUiState.Success(source.getCatalog(board))
         } catch (_: Exception) {
             CatalogUiState.Error
         }

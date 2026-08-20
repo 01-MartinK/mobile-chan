@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,7 +45,8 @@ import coil.ImageLoader
 import coil.decode.ImageDecoderDecoder
 import com.mk.mobilechan.data.Board
 import com.mk.mobilechan.data.BookmarksStore
-import com.mk.mobilechan.data.FourChanClient
+import com.mk.mobilechan.data.ChanHttp
+import com.mk.mobilechan.data.Sources
 import com.mk.mobilechan.ui.boards.BoardContextMenu
 import com.mk.mobilechan.data.rememberBookmarksStore
 import com.mk.mobilechan.ui.boards.BoardsScreen
@@ -56,6 +58,7 @@ import com.mk.mobilechan.ui.catalog.CatalogScreen
 import com.mk.mobilechan.ui.navigation.AppDestinations
 import com.mk.mobilechan.ui.navigation.AppModules
 import com.mk.mobilechan.ui.navigation.BottomNavBar
+import com.mk.mobilechan.ui.navigation.LocalSource
 import com.mk.mobilechan.ui.navigation.TopNavBar
 import com.mk.mobilechan.ui.settings.SettingsScreen
 import com.mk.mobilechan.ui.settings.UserSettings
@@ -71,7 +74,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         Coil.setImageLoader(
             ImageLoader.Builder(this)
-                .okHttpClient(FourChanClient.httpClient)
+                .okHttpClient(ChanHttp.client)
                 .components { add(ImageDecoderDecoder.Factory()) }
                 .build(),
         )
@@ -110,97 +113,119 @@ private fun MobileChanAppContent(settings: UserSettings) {
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val (boardsState, retryBoards) = rememberBoardsUiState()
-    val visibleBoardsState = remember(boardsState, settings.excludedBoards) {
-        boardsState.excluding(settings.excludedBoards)
+    val source = remember(settings.activeSource) {
+        Sources.of(settings.activeSource.sourceId)
     }
 
-    val selectBoard: (Board) -> Unit = { board ->
-        activeBoard = board
-        threadPage = 1
-        activeThreadNo = null
-        settingsOpen = false
-        currentDestination = AppDestinations.THREADS
-    }
-
-    BackHandler(enabled = settingsOpen || activeThreadNo != null) {
-        if (settingsOpen) {
-            settingsOpen = false
-        } else {
-            activeThreadNo = null
+    CompositionLocalProvider(LocalSource provides source) {
+        val (boardsState, retryBoards) = rememberBoardsUiState()
+        val visibleBoardsState = remember(boardsState, settings.excludedBoards) {
+            boardsState.excluding(settings.excludedBoards)
         }
-    }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            AppDrawer(
-                boardsState = visibleBoardsState,
-                activeBoard = activeBoard,
-                enabledModules = settings.enabledModules,
-                onRetryBoards = retryBoards,
-                onBoardSelected = { board ->
-                    selectBoard(board)
-                    scope.launch { drawerState.close() }
+        val selectBoard: (Board) -> Unit = { board ->
+            activeBoard = board
+            threadPage = 1
+            activeThreadNo = null
+            settingsOpen = false
+            currentDestination = AppDestinations.THREADS
+        }
+
+        val selectSource: (AppModules) -> Unit = { module ->
+            if (module != settings.activeSource) {
+                settings.updateActiveSource(module)
+                activeBoard = null
+                threadPage = 1
+                activeThreadNo = null
+                settingsOpen = false
+                currentDestination = AppDestinations.HOME
+            }
+        }
+
+        BackHandler(enabled = settingsOpen || activeThreadNo != null) {
+            if (settingsOpen) {
+                settingsOpen = false
+            } else {
+                activeThreadNo = null
+            }
+        }
+
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                AppDrawer(
+                    boardsState = visibleBoardsState,
+                    activeBoard = activeBoard,
+                    enabledModules = settings.enabledModules,
+                    activeSource = settings.activeSource,
+                    onRetryBoards = retryBoards,
+                    onBoardSelected = { board ->
+                        selectBoard(board)
+                        scope.launch { drawerState.close() }
+                    },
+                    onSourceSelected = { module ->
+                        selectSource(module)
+                        scope.launch { drawerState.close() }
                     },
                     onExcludeBoard = { boardTag ->
                         settings.addExcludedBoard(boardTag)
-                },
-            )
-        },
-    ) {
-        BottomNavBar(
-            currentDestination = currentDestination,
-            insideBoard = activeBoard != null,
-            onDestinationSelected = { destination ->
-                settingsOpen = false
-                activeThreadNo = null
-                currentDestination = destination
+                    },
+                )
             },
         ) {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                topBar = {
-                    TopNavBar(
-                        title = topBarTitle(
-                            currentDestination,
-                            activeBoard,
-                            activeThreadNo,
-                            settingsOpen,
-                        ),
-                        onMenuClick = { scope.launch { drawerState.open() } },
-                        onSettingsClick = if (settingsOpen) null else { { settingsOpen = true } },
-                        onBackClick = when {
-                            settingsOpen -> { { settingsOpen = false } }
-                            activeThreadNo != null -> { { activeThreadNo = null } }
-                            else -> null
-                        },
-                    )
+            BottomNavBar(
+                currentDestination = currentDestination,
+                insideBoard = activeBoard != null,
+                onDestinationSelected = { destination ->
+                    settingsOpen = false
+                    activeThreadNo = null
+                    currentDestination = destination
                 },
-            ) { innerPadding ->
-                DestinationPane(
-                    destination = currentDestination,
-                    boardsState = visibleBoardsState,
-                    activeBoard = activeBoard,
-                    threadPage = threadPage,
-                    activeThreadNo = activeThreadNo,
-                    settingsOpen = settingsOpen,
-                    settings = settings,
-                    bookmarksStore = bookmarksStore,
-                    onRetryBoards = retryBoards,
-                    onBoardSelected = selectBoard,
+            ) {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    topBar = {
+                        TopNavBar(
+                            title = topBarTitle(
+                                currentDestination,
+                                activeBoard,
+                                activeThreadNo,
+                                settingsOpen,
+                            ),
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            onSettingsClick = if (settingsOpen) null else { { settingsOpen = true } },
+                            onBackClick = when {
+                                settingsOpen -> { { settingsOpen = false } }
+                                activeThreadNo != null -> { { activeThreadNo = null } }
+                                else -> null
+                            },
+                        )
+                    },
+                ) { innerPadding ->
+                    DestinationPane(
+                        destination = currentDestination,
+                        boardsState = visibleBoardsState,
+                        activeBoard = activeBoard,
+                        threadPage = threadPage,
+                        activeThreadNo = activeThreadNo,
+                        settingsOpen = settingsOpen,
+                        settings = settings,
+                        bookmarksStore = bookmarksStore,
+                        onRetryBoards = retryBoards,
+                        onBoardSelected = selectBoard,
                         onExcludeBoard = { boardTag ->
                             settings.addExcludedBoard(boardTag)
                         },
-                    onThreadPageChange = { threadPage = it },
-                    onThreadSelected = { activeThreadNo = it },
-                    onNavigateToThread = { board, threadNo ->
-                        activeBoard = board
-                        activeThreadNo = threadNo
-                        currentDestination = AppDestinations.THREADS
-                    },
-                    modifier = Modifier.padding(innerPadding),
-                )
+                        onThreadPageChange = { threadPage = it },
+                        onThreadSelected = { activeThreadNo = it },
+                        onNavigateToThread = { board, threadNo ->
+                            activeBoard = board
+                            activeThreadNo = threadNo
+                            currentDestination = AppDestinations.THREADS
+                        },
+                        modifier = Modifier.padding(innerPadding),
+                    )
+                }
             }
         }
     }
@@ -230,8 +255,10 @@ private fun AppDrawer(
     boardsState: BoardsUiState,
     activeBoard: Board?,
     enabledModules: Set<AppModules>,
+    activeSource: AppModules,
     onRetryBoards: () -> Unit,
     onBoardSelected: (Board) -> Unit,
+    onSourceSelected: (AppModules) -> Unit,
     onExcludeBoard: (String) -> Unit = {},
 ) {
     ModalDrawerSheet {
@@ -246,11 +273,11 @@ private fun AppDrawer(
                 enabledModules.isEmpty() || it in enabledModules
             }
         }
-        modules.forEach { destination ->
+        modules.forEach { module ->
             NavigationDrawerItem(
-                label = { Text(stringResource(destination.labelRes)) },
-                selected = true,
-                onClick = { },
+                label = { Text(stringResource(module.labelRes)) },
+                selected = module == activeSource,
+                onClick = { onSourceSelected(module) },
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             )
         }

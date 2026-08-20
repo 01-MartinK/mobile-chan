@@ -73,6 +73,7 @@ private const val KEY_ALLOW_NSFW = "allow_nsfw"
 private const val KEY_THEME = "theme"
 private const val KEY_WELCOME_COMPLETED = "welcome_completed"
 private const val KEY_ENABLED_MODULES = "enabled_modules"
+private const val KEY_ACTIVE_SOURCE = "active_source"
 private const val KEY_EXCLUDED_BOARDS = "excluded_boards"
 private const val KEY_SHOW_IMAGES = "show_images"
 private const val KEY_SHOW_VIDEOS = "show_videos"
@@ -109,6 +110,7 @@ class UserSettings internal constructor(
     theme: ThemeMode,
     welcomeCompleted: Boolean,
     enabledModules: Set<AppModules>,
+    activeSource: AppModules,
     excludedBoards: Set<String>,
     showImages: Boolean,
     showVideos: Boolean,
@@ -121,6 +123,8 @@ class UserSettings internal constructor(
     var welcomeCompleted by mutableStateOf(welcomeCompleted)
         private set
     var enabledModules by mutableStateOf(enabledModules)
+        private set
+    var activeSource by mutableStateOf(activeSource)
         private set
     var excludedBoards by mutableStateOf(excludedBoards)
         private set
@@ -164,14 +168,22 @@ class UserSettings internal constructor(
         persistExcludedBoards()
     }
 
+    fun updateActiveSource(value: AppModules) {
+        activeSource = value
+        prefs.edit { putString(KEY_ACTIVE_SOURCE, value.name) }
+    }
+
     fun completeWelcome(modules: Set<AppModules>, isAdult: Boolean) {
         enabledModules = modules
         allowNsfw = isAdult
         welcomeCompleted = true
+        val first = modules.firstOrNull() ?: AppModules.FOUR_CHAN
+        activeSource = first
         prefs.edit {
             putBoolean(KEY_WELCOME_COMPLETED, true)
             putBoolean(KEY_ALLOW_NSFW, isAdult)
             putStringSet(KEY_ENABLED_MODULES, modules.map { it.name }.toSet())
+            putString(KEY_ACTIVE_SOURCE, first.name)
         }
     }
 
@@ -190,6 +202,10 @@ fun rememberUserSettings(): UserSettings {
             theme = themeModeFromName(prefs.getString(KEY_THEME, null)),
             welcomeCompleted = prefs.getBoolean(KEY_WELCOME_COMPLETED, false),
             enabledModules = modulesFromNames(prefs.getStringSet(KEY_ENABLED_MODULES, null)),
+            activeSource = activeSourceFromName(
+                prefs.getString(KEY_ACTIVE_SOURCE, null),
+                modulesFromNames(prefs.getStringSet(KEY_ENABLED_MODULES, null)),
+            ),
             excludedBoards = excludedBoardsFromNames(prefs.getStringSet(KEY_EXCLUDED_BOARDS, null)),
             showImages = prefs.getBoolean(KEY_SHOW_IMAGES, true),
             showVideos = prefs.getBoolean(KEY_SHOW_VIDEOS, true),
@@ -206,6 +222,12 @@ private fun modulesFromNames(names: Set<String>?): Set<AppModules> {
     return names.mapNotNull { name ->
         AppModules.entries.find { it.name == name }
     }.toSet()
+}
+
+internal fun activeSourceFromName(name: String?, enabled: Set<AppModules>): AppModules {
+    val requested = AppModules.entries.find { it.name == name }
+    if (requested != null && (enabled.isEmpty() || requested in enabled)) return requested
+    return enabled.firstOrNull() ?: AppModules.FOUR_CHAN
 }
 
 private fun excludedBoardsFromNames(names: Set<String>?): Set<String> {

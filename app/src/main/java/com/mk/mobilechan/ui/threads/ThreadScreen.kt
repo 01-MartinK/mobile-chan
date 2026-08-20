@@ -28,9 +28,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mk.mobilechan.R
 import com.mk.mobilechan.data.Board
-import com.mk.mobilechan.data.FourChanClient
 import com.mk.mobilechan.data.IndexThread
 import com.mk.mobilechan.data.Post
+import com.mk.mobilechan.data.Source
+import com.mk.mobilechan.ui.navigation.LocalSource
 import com.mk.mobilechan.ui.theme.MobileChanTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -73,14 +74,15 @@ fun ThreadScreen(
 private fun rememberThreadUiState(
     board: String,
     threadNo: Long,
+    source: Source = LocalSource.current,
 ): Pair<ThreadUiState, () -> Unit> {
     var state by remember { mutableStateOf<ThreadUiState>(ThreadUiState.Loading) }
     var retryKey by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(board, threadNo, retryKey) {
+    LaunchedEffect(source.id, board, threadNo, retryKey) {
         state = ThreadUiState.Loading
         state = try {
-            ThreadUiState.Success(FourChanClient.getThread(board, threadNo))
+            ThreadUiState.Success(source.getThread(board, threadNo))
         } catch (_: Exception) {
             ThreadUiState.Error
         }

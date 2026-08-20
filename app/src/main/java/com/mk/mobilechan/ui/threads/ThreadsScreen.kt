@@ -28,15 +28,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mk.mobilechan.R
 import com.mk.mobilechan.data.Board
-import com.mk.mobilechan.data.FourChanClient
 import com.mk.mobilechan.data.IndexThread
 import com.mk.mobilechan.data.Post
+import com.mk.mobilechan.data.Source
+import com.mk.mobilechan.ui.navigation.LocalSource
 import com.mk.mobilechan.ui.theme.MobileChanTheme
 
 sealed interface ThreadsUiState {
     data object Loading : ThreadsUiState
     data object Error : ThreadsUiState
-    data class Success(val threads: List<IndexThread>) : ThreadsUiState
+    data class Success(val threads: List<IndexThread>, val pageCount: Int) : ThreadsUiState
 }
 
 @Composable
@@ -51,12 +52,12 @@ fun ThreadsScreen(
     isBookmarked: ((Long) -> Boolean)? = null,
     onToggleBookmark: ((IndexThread) -> Unit)? = null,
 ) {
-    val (state, retry) = rememberThreadsUiState(board.board, page)
+    val (state, retry) = rememberThreadsUiState(board, page)
 
     ThreadsList(
         state = state,
         page = page,
-        pageCount = board.pages,
+        pageCount = (state as? ThreadsUiState.Success)?.pageCount ?: board.pages,
         onRetry = retry,
         onPageChange = onPageChange,
         onThreadSelected = onThreadSelected,
@@ -70,16 +71,21 @@ fun ThreadsScreen(
 
 @Composable
 private fun rememberThreadsUiState(
-    board: String,
+    board: Board,
     page: Int,
+    source: Source = LocalSource.current,
 ): Pair<ThreadsUiState, () -> Unit> {
     var state by remember { mutableStateOf<ThreadsUiState>(ThreadsUiState.Loading) }
     var retryKey by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(board, page, retryKey) {
+    LaunchedEffect(source.id, board.board, page, retryKey) {
         state = ThreadsUiState.Loading
         state = try {
-            ThreadsUiState.Success(FourChanClient.getIndex(board, page).threads)
+            val response = source.getIndex(board.board, page)
+            ThreadsUiState.Success(
+                threads = response.threads,
+                pageCount = response.pageCount ?: board.pages,
+            )
         } catch (_: Exception) {
             ThreadsUiState.Error
         }
@@ -221,6 +227,7 @@ private fun ThreadsListPreview() {
                         ),
                     ),
                 ),
+                pageCount = 10,
             ),
             page = 1,
             pageCount = 10,

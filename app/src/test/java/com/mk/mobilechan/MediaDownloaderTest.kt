@@ -1,6 +1,6 @@
 package com.mk.mobilechan
 
-import com.mk.mobilechan.data.FourChanMedia
+import com.mk.mobilechan.data.ChanMedia
 import com.mk.mobilechan.data.MediaDownloader
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -30,9 +30,10 @@ class MediaDownloaderTest {
 
     @Test
     fun mimeTypeMapsCommonExtensions() {
-        assertEquals("image/jpeg", FourChanMedia.mimeType(".jpg"))
-        assertEquals("video/webm", FourChanMedia.mimeType(".WEBM"))
-        assertEquals("video/mp4", FourChanMedia.mimeType(".mp4"))
-        assertNull(FourChanMedia.mimeType(null))
+        assertEquals("image/jpeg", ChanMedia.mimeType(".jpg"))
+        assertEquals("video/webm", ChanMedia.mimeType(".WEBM"))
+        assertEquals("video/mp4", ChanMedia.mimeType(".mp4"))
+        assertEquals("video/webm", ChanMedia.mimeType(null, "video/webm"))
+        assertNull(ChanMedia.mimeType(null))
     }
 }
