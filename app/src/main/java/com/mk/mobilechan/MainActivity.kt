@@ -223,6 +223,12 @@ private fun MobileChanAppContent(settings: UserSettings) {
                             activeThreadNo = threadNo
                             currentDestination = AppDestinations.THREADS
                         },
+                        onActiveSourceInvalidated = {
+                            activeBoard = null
+                            threadPage = 1
+                            activeThreadNo = null
+                            currentDestination = AppDestinations.HOME
+                        },
                         modifier = Modifier.padding(innerPadding),
                     )
                 }
@@ -389,6 +395,7 @@ private fun DestinationPane(
     settingsOpen: Boolean,
     settings: UserSettings,
     bookmarksStore: BookmarksStore,
+    onActiveSourceInvalidated: () -> Unit = {},
 ) {
     if (settingsOpen) {
         SettingsScreen(
@@ -403,6 +410,14 @@ private fun DestinationPane(
             onShowImagesChange = settings::updateShowImages,
             showVideos = settings.showVideos,
             onShowVideosChange = settings::updateShowVideos,
+            enabledModules = settings.enabledModules,
+            onModuleEnabledChange = { module, enabled ->
+                val previousSource = settings.activeSource
+                settings.setModuleEnabled(module, enabled)
+                if (settings.activeSource != previousSource) {
+                    onActiveSourceInvalidated()
+                }
+            },
             modifier = modifier,
         )
         return

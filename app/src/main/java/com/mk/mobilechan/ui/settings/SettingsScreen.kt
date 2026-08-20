@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Nightlight
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -173,6 +174,18 @@ class UserSettings internal constructor(
         prefs.edit { putString(KEY_ACTIVE_SOURCE, value.name) }
     }
 
+    fun setModuleEnabled(module: AppModules, enabled: Boolean): Boolean {
+        val next = nextEnabledModules(enabledModules, module, enabled) ?: return false
+        if (next != enabledModules) {
+            enabledModules = next
+            prefs.edit { putStringSet(KEY_ENABLED_MODULES, next.map { it.name }.toSet()) }
+        }
+        if (activeSource !in next) {
+            updateActiveSource(next.first())
+        }
+        return true
+    }
+
     fun completeWelcome(modules: Set<AppModules>, isAdult: Boolean) {
         enabledModules = modules
         allowNsfw = isAdult
@@ -230,6 +243,15 @@ internal fun activeSourceFromName(name: String?, enabled: Set<AppModules>): AppM
     return enabled.firstOrNull() ?: AppModules.FOUR_CHAN
 }
 
+internal fun nextEnabledModules(
+    current: Set<AppModules>,
+    module: AppModules,
+    enabled: Boolean,
+): Set<AppModules>? {
+    val next = if (enabled) current + module else current - module
+    return next.takeIf { it.isNotEmpty() }
+}
+
 private fun excludedBoardsFromNames(names: Set<String>?): Set<String> {
     if (names == null) return DEFAULT_EXCLUDED_BOARDS
     return names.mapNotNull(::normalizeBoardTag).toSet()
@@ -253,6 +275,8 @@ fun SettingsScreen(
     onShowImagesChange: (Boolean) -> Unit,
     showVideos: Boolean,
     onShowVideosChange: (Boolean) -> Unit,
+    enabledModules: Set<AppModules>,
+    onModuleEnabledChange: (AppModules, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -260,6 +284,18 @@ fun SettingsScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
+        SettingsSectionTitle(stringResource(R.string.settings_chans))
+        Text(
+            text = stringResource(R.string.settings_chans_message),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        ChanModulesSetting(
+            enabledModules = enabledModules,
+            onModuleEnabledChange = onModuleEnabledChange,
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SettingsSectionTitle(stringResource(R.string.settings_boards))
         SettingsSwitch(
             label = stringResource(R.string.settings_allow_nsfw),
@@ -301,6 +337,71 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ChanModulesSetting(
+    enabledModules: Set<AppModules>,
+    onModuleEnabledChange: (AppModules, Boolean) -> Unit,
+) {
+    val canDisable = enabledModules.size > 1
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        AppModules.entries.forEach { module ->
+            val selected = module in enabledModules
+            ChanModuleBox(
+                module = module,
+                selected = selected,
+                enabled = !selected || canDisable,
+                onClick = { onModuleEnabledChange(module, !selected) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChanModuleBox(
+    module: AppModules,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(2.dp, borderColor, shape)
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                onClick = onClick,
+                role = Role.Checkbox,
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(
+            checked = selected,
+            onCheckedChange = null,
+            enabled = enabled,
+        )
+        Text(
+            text = stringResource(module.labelRes),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(start = 8.dp),
+        )
     }
 }
 
@@ -540,6 +641,8 @@ private fun SettingsScreenPreview() {
         SettingsScreen(
             allowNsfw = false,
             onAllowNsfwChange = {},
+            enabledModules = setOf(AppModules.FOUR_CHAN, AppModules.END_CHAN),
+            onModuleEnabledChange = { _, _ -> },
             theme = ThemeMode.LIGHT,
             onThemeChange = {},
             excludedBoards = setOf("b", "pol"),

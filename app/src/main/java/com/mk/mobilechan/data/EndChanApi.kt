@@ -75,6 +75,7 @@ interface EndChanApi {
     @GET("boards.js")
     suspend fun getBoards(
         @Query("json") json: Int = 1,
+        @Query("page") page: Int = 1,
     ): EndChanBoardsResponse
 
     @GET("{board}/{page}.json")
@@ -263,13 +264,13 @@ object EndChanSource : Source {
     }
 
     override suspend fun getBoards(): List<Board> {
-        val first = api.getBoards()
+        val first = api.getBoards(page = 1)
         val remaining = if (first.pages > 1) {
             val semaphore = Semaphore(BOARD_FETCH_CONCURRENCY)
             coroutineScope {
                 (2..first.pages).map { page ->
                     async {
-                        semaphore.withPermit { api.getBoards() }
+                        semaphore.withPermit { api.getBoards(page = page) }
                     }
                 }.awaitAll()
             }

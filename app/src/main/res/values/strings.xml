@@ -53,6 +53,8 @@
     <string name="thread_menu_remove_bookmark">Remove bookmark</string>
     <string name="nav_thread">Thread</string>
     <string name="settings_button">Settings</string>
+    <string name="settings_chans">Imageboards</string>
+    <string name="settings_chans_message">Choose which chans are available in the drawer.</string>
     <string name="settings_boards">Boards</string>
     <string name="settings_allow_nsfw">Allow NSFW</string>
     <string name="settings_excluded_boards">Excluded boards</string>

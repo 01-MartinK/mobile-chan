@@ -9,6 +9,7 @@ import com.mk.mobilechan.data.SourceId
 import com.mk.mobilechan.data.Sources
 import com.mk.mobilechan.ui.navigation.AppModules
 import com.mk.mobilechan.ui.settings.activeSourceFromName
+import com.mk.mobilechan.ui.settings.nextEnabledModules
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -42,6 +43,23 @@ class EndChanMapperTest {
         assertEquals(
             AppModules.END_CHAN,
             activeSourceFromName(null, setOf(AppModules.END_CHAN)),
+        )
+    }
+
+    @Test
+    fun nextEnabledModulesKeepsAtLeastOne() {
+        val both = setOf(AppModules.FOUR_CHAN, AppModules.END_CHAN)
+        assertEquals(
+            setOf(AppModules.END_CHAN),
+            nextEnabledModules(both, AppModules.FOUR_CHAN, false),
+        )
+        assertEquals(
+            both,
+            nextEnabledModules(setOf(AppModules.FOUR_CHAN), AppModules.END_CHAN, true),
+        )
+        assertEquals(
+            null,
+            nextEnabledModules(setOf(AppModules.FOUR_CHAN), AppModules.FOUR_CHAN, false),
         )
     }
 
