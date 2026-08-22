@@ -28,7 +28,7 @@ fun ThreadContextMenu(
     onToggleBookmark: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val canDownload = thread.imageUrl != null
+    val canDownload = thread.imageUrl != null || thread.op?.imageUrl != null
 
     DropdownMenu(
         expanded = expanded,

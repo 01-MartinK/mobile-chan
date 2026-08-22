@@ -142,7 +142,17 @@ class EndChanMapperTest {
                   "thumb": "/.media/t_abc-imagepng",
                   "mime": "image/png"
                 }],
-                "posts": [{"postId": 29182, "name": "Tardus"}],
+                "posts": [{
+                  "postId": 29182,
+                  "name": "Tardus",
+                  "markdown": "this is a comment!",
+                  "files": [{
+                    "originalName": "clip.jpg",
+                    "path": "/.media/clip.jpg",
+                    "thumb": "/.media/t_clip",
+                    "mime": "image/jpeg"
+                  }]
+                }],
                 "omittedPosts": 14,
                 "omittedFiles": 3
               }]
@@ -171,6 +181,15 @@ class EndChanMapperTest {
         assertEquals("https://endchan.net/.media/abc-imagepng.png", thread.imageUrl)
         assertEquals("https://endchan.net/.media/t_abc-imagepng", thread.thumbnailUrl)
         assertTrue(op.now.contains("04/13/26"))
+        assertEquals(2, thread.posts.size)
+        val lastReply = thread.posts[1]
+        assertEquals(29182L, lastReply.no)
+        assertEquals(29048L, lastReply.resto)
+        assertEquals("Tardus", lastReply.name)
+        assertEquals("this is a comment!", lastReply.com)
+        assertEquals(".jpg", lastReply.ext)
+        assertEquals("https://endchan.net/.media/clip.jpg", lastReply.imageUrl)
+        assertEquals("https://endchan.net/.media/t_clip", lastReply.thumbnailUrl)
     }
 
     @Test

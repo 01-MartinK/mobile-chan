@@ -75,6 +75,8 @@ fun ThreadCard(
     val op = thread.op ?: return
     var showFullRes by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
+    val imageUrl = op.imageUrl ?: thread.imageUrl
+    val thumbnailUrl = op.thumbnailUrl ?: thread.thumbnailUrl
     val isVideo = ChanMedia.isVideo(op.ext, op.mime)
     val showMedia = if (isVideo) showVideos else showImages
 
@@ -95,8 +97,8 @@ fun ThreadCard(
             ThreadHeader(op)
             if (showMedia) {
                 ThreadImage(
-                    thumbnailUrl = thread.thumbnailUrl,
-                    fullImageUrl = thread.imageUrl,
+                    thumbnailUrl = thumbnailUrl,
+                    fullImageUrl = imageUrl,
                     filename = op.filename,
                     onClick = { showFullRes = true },
                     onLongClick = { menuExpanded = true },
@@ -141,7 +143,7 @@ fun ThreadCard(
     }
 
     if (showFullRes && showMedia) {
-        thread.imageUrl?.let { url ->
+        imageUrl?.let { url ->
             FullMediaOverlay(
                 url = url,
                 ext = op.ext,

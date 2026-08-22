@@ -23,7 +23,7 @@ object MediaDownloader {
     }
 
     fun download(context: Context, thread: IndexThread): Boolean {
-        val url = thread.imageUrl ?: return false
+        val url = thread.imageUrl ?: thread.op?.imageUrl ?: return false
         val op = thread.op
         return enqueue(
             context = context,

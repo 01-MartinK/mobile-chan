@@ -150,17 +150,27 @@ private fun ThreadsList(
                         )
                     }
                 } else {
-                    items(state.threads, key = { it.op?.no ?: it.hashCode() }) { thread ->
-                        val threadNo = thread.op?.no
+                    items(
+                        items = state.threads.flatMap { thread ->
+                            thread.posts.map { post -> thread to post }
+                        },
+                        key = { (_, post) -> post.no },
+                    ) { (thread, post) ->
+                        val threadNo = thread.op?.no ?: post.threadNo
                         ThreadCard(
-                            thread = thread,
-                            onClick = { threadNo?.let(onThreadSelected) },
+                            thread = thread.cardForPost(post),
+                            onClick = { onThreadSelected(threadNo) },
                             showImages = showImages,
                             showVideos = showVideos,
-                            isBookmarked = threadNo != null && (isBookmarked?.invoke(threadNo) == true),
+                            isBookmarked = isBookmarked?.invoke(threadNo) == true,
                             onToggleBookmark = if (onToggleBookmark != null) {
                                 { onToggleBookmark(thread) }
                             } else null,
+                            modifier = if (post.resto != 0L) {
+                                Modifier.padding(start = 16.dp)
+                            } else {
+                                Modifier
+                            },
                         )
                     }
                 }
@@ -223,6 +233,14 @@ private fun ThreadsListPreview() {
                                 com = """<a href="#p9823401" class="quotelink">&gt;&gt;9823401</a><br><span class="quote">&gt;I want to keep the physical footprint as small as possible while maximizing throughput.</span><br>N100s are fine for basic stuff, but if you want real throughput between nodes you need 2.5GbE minimum.""",
                                 replies = 42,
                                 images = 8,
+                                omitted_posts = 40,
+                            ),
+                            Post(
+                                no = 9823501,
+                                resto = 9823415,
+                                now = "05/14/24(Tue)15:02:11",
+                                name = "Anonymous",
+                                com = "this is a comment!",
                             ),
                         ),
                     ),

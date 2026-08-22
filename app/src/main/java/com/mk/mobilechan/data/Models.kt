@@ -23,7 +23,11 @@ data class Post(
     val omitted_posts: Int = 0,
     val sticky: Int = 0,
     val closed: Int = 0,
-)
+    val imageUrl: String? = null,
+    val thumbnailUrl: String? = null,
+) {
+    val threadNo: Long get() = if (resto != 0L) resto else no
+}
 
 data class IndexThread(
     val posts: List<Post> = emptyList(),
@@ -31,6 +35,15 @@ data class IndexThread(
     val thumbnailUrl: String? = null,
 ) {
     val op: Post? get() = posts.firstOrNull()
+
+    fun cardForPost(post: Post): IndexThread {
+        val isOp = post.no == op?.no
+        return IndexThread(
+            posts = listOf(post),
+            imageUrl = post.imageUrl ?: imageUrl.takeIf { isOp },
+            thumbnailUrl = post.thumbnailUrl ?: thumbnailUrl.takeIf { isOp },
+        )
+    }
 }
 
 data class IndexPageResponse(

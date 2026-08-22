@@ -115,12 +115,25 @@ object EndChanMapper {
     fun index(response: EndChanIndexResponse, siteUrl: String): IndexPageResponse =
         IndexPageResponse(
             threads = response.threads.map { posting ->
-                toIndexThread(
+                val op = toPost(
                     posting = posting,
                     siteUrl = siteUrl,
+                    resto = 0,
                     replies = replyCount(posting),
                     images = imageCount(posting),
                     omitted = posting.omittedPosts,
+                )
+                val lastReplies = posting.posts.orEmpty().map { reply ->
+                    toPost(
+                        posting = reply,
+                        siteUrl = siteUrl,
+                        resto = posting.threadId,
+                    )
+                }
+                IndexThread(
+                    posts = listOf(op) + lastReplies,
+                    imageUrl = op.imageUrl,
+                    thumbnailUrl = op.thumbnailUrl,
                 )
             },
             pageCount = response.pageCount,
@@ -166,16 +179,17 @@ object EndChanMapper {
         images: Int = 0,
         omitted: Int = 0,
     ): IndexThread {
-        val (imageUrl, thumbnailUrl) = mediaUrls(posting, siteUrl)
+        val post = toPost(posting, siteUrl, resto, replies, images, omitted)
         return IndexThread(
-            posts = listOf(toPost(posting, resto, replies, images, omitted)),
-            imageUrl = imageUrl,
-            thumbnailUrl = thumbnailUrl,
+            posts = listOf(post),
+            imageUrl = post.imageUrl,
+            thumbnailUrl = post.thumbnailUrl,
         )
     }
 
     fun toPost(
         posting: EndChanPosting,
+        siteUrl: String,
         resto: Long = 0,
         replies: Int = 0,
         images: Int = 0,
@@ -184,6 +198,7 @@ object EndChanMapper {
         val file = posting.files.orEmpty().firstOrNull()
         val comment = posting.markdown?.takeIf { it.isNotBlank() }
             ?: posting.message?.replace("\n", "<br>")
+        val (imageUrl, thumbnailUrl) = mediaUrls(posting, siteUrl)
         return Post(
             no = if (posting.postId != 0L) posting.postId else posting.threadId,
             resto = resto,
@@ -199,6 +214,8 @@ object EndChanMapper {
             omitted_posts = omitted,
             sticky = if (posting.pinned) 1 else 0,
             closed = if (posting.locked) 1 else 0,
+            imageUrl = imageUrl,
+            thumbnailUrl = thumbnailUrl,
         )
     }
 

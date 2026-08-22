@@ -79,16 +79,26 @@ object FourChanSource : Source {
         }
 }
 
-private fun IndexThread.withFourChanMedia(board: String): IndexThread {
-    val tim = op?.tim
-    val ext = op?.ext
-    if (tim == null || ext.isNullOrBlank()) return this
+internal fun IndexThread.withFourChanMedia(board: String): IndexThread {
+    val updatedPosts = posts.map { it.withFourChanMedia(board) }
+    val op = updatedPosts.firstOrNull()
+    return copy(
+        posts = updatedPosts,
+        imageUrl = op?.imageUrl,
+        thumbnailUrl = op?.thumbnailUrl,
+    )
+}
+
+internal fun IndexPageResponse.withFourChanMedia(board: String) = copy(
+    threads = threads.map { it.withFourChanMedia(board) },
+)
+
+private fun Post.withFourChanMedia(board: String): Post {
+    val tim = tim ?: return this
+    val ext = ext
+    if (ext.isNullOrBlank()) return this
     return copy(
         imageUrl = FourChanMedia.imageUrl(board, tim, ext),
         thumbnailUrl = FourChanMedia.thumbnailUrl(board, tim),
     )
 }
-
-private fun IndexPageResponse.withFourChanMedia(board: String) = copy(
-    threads = threads.map { it.withFourChanMedia(board) },
-)
