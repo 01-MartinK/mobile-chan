@@ -26,6 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +47,7 @@ import coil.decode.ImageDecoderDecoder
 import com.mk.mobilechan.data.Board
 import com.mk.mobilechan.data.BookmarksStore
 import com.mk.mobilechan.data.ChanHttp
+import com.mk.mobilechan.data.NsfwBoards
 import com.mk.mobilechan.data.Sources
 import com.mk.mobilechan.ui.boards.BoardContextMenu
 import com.mk.mobilechan.data.rememberBookmarksStore
@@ -119,8 +121,21 @@ private fun MobileChanAppContent(settings: UserSettings) {
 
     CompositionLocalProvider(LocalSource provides source) {
         val (boardsState, retryBoards) = rememberBoardsUiState()
-        val visibleBoardsState = remember(boardsState, settings.excludedBoards) {
-            boardsState.excluding(settings.excludedBoards)
+        val hiddenBoardTags = remember(settings.excludedBoards, settings.allowNsfw) {
+            NsfwBoards.hiddenTags(settings.excludedBoards, settings.allowNsfw)
+        }
+        val visibleBoardsState = remember(boardsState, hiddenBoardTags, settings.allowNsfw) {
+            boardsState.excluding(hiddenBoardTags, hideNsfw = !settings.allowNsfw)
+        }
+
+        LaunchedEffect(settings.allowNsfw, activeBoard) {
+            val board = activeBoard
+            if (!settings.allowNsfw && board != null && NsfwBoards.contains(board)) {
+                activeBoard = null
+                threadPage = 1
+                activeThreadNo = null
+                currentDestination = AppDestinations.HOME
+            }
         }
 
         val selectBoard: (Board) -> Unit = { board ->
@@ -400,10 +415,11 @@ private fun DestinationPane(
     if (settingsOpen) {
         SettingsScreen(
             allowNsfw = settings.allowNsfw,
+            isAdult = settings.isAdult,
             onAllowNsfwChange = settings::updateAllowNsfw,
             theme = settings.theme,
             onThemeChange = settings::updateTheme,
-            excludedBoards = settings.excludedBoards,
+            excludedBoards = settings.visibleExcludedBoards,
             onAddExcludedBoard = settings::addExcludedBoard,
             onRemoveExcludedBoard = settings::removeExcludedBoard,
             showImages = settings.showImages,
@@ -434,8 +450,15 @@ private fun DestinationPane(
             )
         }
         AppDestinations.BOOKMARKS -> {
+            val visibleBookmarks = remember(bookmarksStore.bookmarks, settings.allowNsfw) {
+                if (settings.allowNsfw) {
+                    bookmarksStore.bookmarks
+                } else {
+                    bookmarksStore.bookmarks.filterNot { NsfwBoards.contains(it.board) }
+                }
+            }
             BookmarksScreen(
-                bookmarks = bookmarksStore.bookmarks,
+                bookmarks = visibleBookmarks,
                 onThreadSelected = onNavigateToThread,
                 onToggleBookmark = { board, thread ->
                     bookmarksStore.toggleBookmark(board, thread)
@@ -523,10 +546,15 @@ private fun MobileChanAppPreview() {
 private val ActiveBoardSaver = listSaver<Board?, String>(
     save = { board ->
         if (board == null) emptyList()
-        else listOf(board.board, board.title, board.pages.toString())
+        else listOf(board.board, board.title, board.pages.toString(), board.ws_board.toString())
     },
     restore = { saved ->
         if (saved.size < 2) null
-        else Board(saved[0], saved[1], saved.getOrNull(2)?.toIntOrNull() ?: 10)
+        else Board(
+            saved[0],
+            saved[1],
+            saved.getOrNull(2)?.toIntOrNull() ?: 10,
+            saved.getOrNull(3)?.toIntOrNull() ?: 1,
+        )
     },
 )

@@ -4,7 +4,10 @@ data class Board(
     val board: String,
     val title: String,
     val pages: Int = 10,
-)
+    val ws_board: Int = 1,
+) {
+    val isNsfw: Boolean get() = ws_board == 0
+}
 
 data class Post(
     val no: Long,

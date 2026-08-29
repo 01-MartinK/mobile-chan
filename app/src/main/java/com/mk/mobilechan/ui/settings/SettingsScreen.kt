@@ -62,6 +62,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mk.mobilechan.R
+import com.mk.mobilechan.data.NsfwBoards
 import com.mk.mobilechan.ui.theme.Background
 import com.mk.mobilechan.ui.theme.BackgroundDark
 import com.mk.mobilechan.ui.theme.MobileChanTheme
@@ -71,6 +72,7 @@ import androidx.core.content.edit
 
 private const val SETTINGS_PREFS = "settings"
 private const val KEY_ALLOW_NSFW = "allow_nsfw"
+private const val KEY_IS_ADULT = "is_adult"
 private const val KEY_THEME = "theme"
 private const val KEY_WELCOME_COMPLETED = "welcome_completed"
 private const val KEY_ENABLED_MODULES = "enabled_modules"
@@ -78,28 +80,6 @@ private const val KEY_ACTIVE_SOURCE = "active_source"
 private const val KEY_EXCLUDED_BOARDS = "excluded_boards"
 private const val KEY_SHOW_IMAGES = "show_images"
 private const val KEY_SHOW_VIDEOS = "show_videos"
-// Official 4chan non-worksafe boards (ws_board = 0).
-private val DEFAULT_EXCLUDED_BOARDS = setOf(
-    "aco",
-    "b",
-    "bant",
-    "d",
-    "e",
-    "gif",
-    "h",
-    "hc",
-    "hm",
-    "hr",
-    "pol",
-    "r9k",
-    "s",
-    "s4s",
-    "soc",
-    "t",
-    "trash",
-    "u",
-    "y",
-)
 private val ICONS_MAP = mapOf(
     Pair(ThemeMode.LIGHT, Icons.Outlined.WbSunny),
     Pair(ThemeMode.DARK, Icons.Outlined.Nightlight),
@@ -108,6 +88,7 @@ private val ICONS_MAP = mapOf(
 
 class UserSettings internal constructor(
     allowNsfw: Boolean,
+    isAdult: Boolean,
     theme: ThemeMode,
     welcomeCompleted: Boolean,
     enabledModules: Set<AppModules>,
@@ -118,6 +99,8 @@ class UserSettings internal constructor(
     private val prefs: SharedPreferences,
 ) {
     var allowNsfw by mutableStateOf(allowNsfw)
+        private set
+    var isAdult by mutableStateOf(isAdult)
         private set
     var theme by mutableStateOf(theme)
         private set
@@ -134,7 +117,11 @@ class UserSettings internal constructor(
     var showVideos by mutableStateOf(showVideos)
         private set
 
+    val visibleExcludedBoards: Set<String>
+        get() = NsfwBoards.visibleExcluded(excludedBoards, allowNsfw)
+
     fun updateAllowNsfw(value: Boolean) {
+        if (value && !isAdult) return
         allowNsfw = value
         prefs.edit { putBoolean(KEY_ALLOW_NSFW, value) }
     }
@@ -156,6 +143,7 @@ class UserSettings internal constructor(
 
     fun addExcludedBoard(raw: String): Boolean {
         val tag = normalizeBoardTag(raw) ?: return false
+        if (!allowNsfw && NsfwBoards.contains(tag)) return false
         if (tag !in excludedBoards) {
             excludedBoards = excludedBoards + tag
             persistExcludedBoards()
@@ -164,6 +152,7 @@ class UserSettings internal constructor(
     }
 
     fun removeExcludedBoard(tag: String) {
+        if (!allowNsfw && NsfwBoards.contains(tag)) return
         if (tag !in excludedBoards) return
         excludedBoards = excludedBoards - tag
         persistExcludedBoards()
@@ -188,12 +177,14 @@ class UserSettings internal constructor(
 
     fun completeWelcome(modules: Set<AppModules>, isAdult: Boolean) {
         enabledModules = modules
+        this.isAdult = isAdult
         allowNsfw = isAdult
         welcomeCompleted = true
         val first = modules.firstOrNull() ?: AppModules.FOUR_CHAN
         activeSource = first
         prefs.edit {
             putBoolean(KEY_WELCOME_COMPLETED, true)
+            putBoolean(KEY_IS_ADULT, isAdult)
             putBoolean(KEY_ALLOW_NSFW, isAdult)
             putStringSet(KEY_ENABLED_MODULES, modules.map { it.name }.toSet())
             putString(KEY_ACTIVE_SOURCE, first.name)
@@ -210,10 +201,17 @@ fun rememberUserSettings(): UserSettings {
     val context = LocalContext.current
     return remember {
         val prefs = context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
+        val welcomeCompleted = prefs.getBoolean(KEY_WELCOME_COMPLETED, false)
+        val isAdult = if (prefs.contains(KEY_IS_ADULT)) {
+            prefs.getBoolean(KEY_IS_ADULT, false)
+        } else {
+            welcomeCompleted
+        }
         UserSettings(
-            allowNsfw = prefs.getBoolean(KEY_ALLOW_NSFW, false),
+            allowNsfw = isAdult && prefs.getBoolean(KEY_ALLOW_NSFW, false),
+            isAdult = isAdult,
             theme = themeModeFromName(prefs.getString(KEY_THEME, null)),
-            welcomeCompleted = prefs.getBoolean(KEY_WELCOME_COMPLETED, false),
+            welcomeCompleted = welcomeCompleted,
             enabledModules = modulesFromNames(prefs.getStringSet(KEY_ENABLED_MODULES, null)),
             activeSource = activeSourceFromName(
                 prefs.getString(KEY_ACTIVE_SOURCE, null),
@@ -253,7 +251,7 @@ internal fun nextEnabledModules(
 }
 
 private fun excludedBoardsFromNames(names: Set<String>?): Set<String> {
-    if (names == null) return DEFAULT_EXCLUDED_BOARDS
+    if (names == null) return NsfwBoards.tags
     return names.mapNotNull(::normalizeBoardTag).toSet()
 }
 
@@ -265,6 +263,7 @@ internal fun normalizeBoardTag(raw: String): String? {
 @Composable
 fun SettingsScreen(
     allowNsfw: Boolean,
+    isAdult: Boolean,
     onAllowNsfwChange: (Boolean) -> Unit,
     theme: ThemeMode,
     onThemeChange: (ThemeMode) -> Unit,
@@ -297,11 +296,13 @@ fun SettingsScreen(
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SettingsSectionTitle(stringResource(R.string.settings_boards))
-        SettingsSwitch(
-            label = stringResource(R.string.settings_allow_nsfw),
-            checked = allowNsfw,
-            onCheckedChange = onAllowNsfwChange,
-        )
+        if (isAdult) {
+            SettingsSwitch(
+                label = stringResource(R.string.settings_allow_nsfw),
+                checked = allowNsfw,
+                onCheckedChange = onAllowNsfwChange,
+            )
+        }
         ExcludedBoardsSetting(
             excludedBoards = excludedBoards,
             onAddExcludedBoard = onAddExcludedBoard,
@@ -640,6 +641,7 @@ private fun SettingsScreenPreview() {
     MobileChanTheme {
         SettingsScreen(
             allowNsfw = false,
+            isAdult = true,
             onAllowNsfwChange = {},
             enabledModules = setOf(AppModules.FOUR_CHAN, AppModules.END_CHAN),
             onModuleEnabledChange = { _, _ -> },

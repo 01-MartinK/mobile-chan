@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.mk.mobilechan.R
 import com.mk.mobilechan.data.Board
+import com.mk.mobilechan.data.NsfwBoards
 import com.mk.mobilechan.data.Source
 import com.mk.mobilechan.ui.navigation.LocalSource
 import com.mk.mobilechan.ui.theme.MobileChanTheme
@@ -36,10 +37,18 @@ sealed interface BoardsUiState {
     data class Success(val boards: List<Board>) : BoardsUiState
 }
 
-fun BoardsUiState.excluding(boardTags: Collection<String>): BoardsUiState {
-    if (this !is BoardsUiState.Success || boardTags.isEmpty()) return this
+fun BoardsUiState.excluding(
+    boardTags: Collection<String>,
+    hideNsfw: Boolean = false,
+): BoardsUiState {
+    if (this !is BoardsUiState.Success) return this
+    if (boardTags.isEmpty() && !hideNsfw) return this
     val excluded = boardTags.map { it.lowercase() }.toSet()
-    return copy(boards = boards.filter { it.board.lowercase() !in excluded })
+    return copy(
+        boards = boards.filter { board ->
+            board.board.lowercase() !in excluded && (!hideNsfw || !NsfwBoards.contains(board))
+        },
+    )
 }
 
 @Composable

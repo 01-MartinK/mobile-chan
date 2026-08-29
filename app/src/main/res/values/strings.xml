@@ -80,7 +80,7 @@
     <string name="welcome_chans_title">What chans do you use?</string>
     <string name="welcome_chans_message">Select the imageboards you want available.</string>
     <string name="welcome_age_title">Are you 18 or older?</string>
-    <string name="welcome_age_message">Some boards contain adult content. You can change this later in Settings.</string>
+    <string name="welcome_age_message">Some boards contain adult content. If you are 18 or older, you can change this later in Settings.</string>
     <string name="welcome_age_yes">Yes, I am 18+</string>
     <string name="welcome_age_no">No, I am under 18</string>
 </resources>
